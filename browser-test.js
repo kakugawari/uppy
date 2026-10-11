@@ -156,34 +156,46 @@ async function run() {
         tall: document.documentElement.scrollHeight - document.documentElement.clientHeight,
         loadingHidden: document.getElementById('loading').hidden,
         titleShown: !document.getElementById('title').hidden,
-        buttons: ['btnCpu', 'btnTwo', 'btnTower', 'btnHow', 'btnSound'].map((id) => ({ id, ...r(document.getElementById(id)) })),
-        logo: r(document.querySelector('.logo')),
-        ver: document.getElementById('ver').textContent,
-        tiles: Array.from(document.querySelectorAll('.tile')).map((e) => ({ ...r(e), text: e.textContent }))
+        bg: getComputedStyle(document.getElementById('title')).backgroundImage,
+        start: r(document.getElementById('btnStart')),
+        menuHidden: document.getElementById('menuSheet').hidden,
+        foot: ['btnHow', 'btnSound'].map((id) => ({ id, ...r(document.getElementById(id)) })),
+        ver: document.getElementById('ver').textContent
       };
     });
     ok(title.loadingHidden && title.titleShown, '読み込みが終わり、タイトルが出る');
     ok(title.wide <= 1 && title.tall <= 1, `はみ出しスクロールが出ない (横${title.wide} 縦${title.tall})`);
     ok(/^v\d+/.test(title.ver), `版の番号が出ている (${title.ver})`);
-    ok(title.buttons.every((b) => b.l >= 0 && b.r <= W && b.t >= SAFE_TOP && b.b <= H - SAFE_BOTTOM + 8),
-      'タイトルのボタンが ぜんぶ 安全域の中に収まる');
-    ok(title.logo.t >= SAFE_TOP && title.logo.l >= 0 && title.logo.r <= W, `題字が画面の中 (上 ${Math.round(title.logo.t)}pt)`);
-    // 題字: 1 字ずつの箱が重ならない (フォント任せの縦書きではなく、箱に入れて並べている)
-    const rows = {};
-    title.tiles.forEach((t) => { const k = Math.round(t.t / 20); (rows[k] = rows[k] || []).push(t); });
-    let tileOverlap = 0;
-    Object.values(rows).forEach((row) => { row.sort((a, b) => a.l - b.l); for (let i = 1; i < row.length; i++) if (row[i].l < row[i - 1].r - 0.5) tileOverlap++; });
-    ok(tileOverlap === 0 && title.tiles.length === 7, `題字の 7 文字が重ならず ならぶ (重なり ${tileOverlap})`);
+    ok(/title\.jpg/.test(title.bg), `タイトルの絵が敷かれている (${title.bg.slice(0, 40)})`);
+    const img = await page.request.get(URL + 'title.jpg');
+    ok(img.ok() && (await img.body()).length < 600000, `タイトルの絵が配信され、軽い (${Math.round((await img.body()).length / 1024)}KB)`);
+    // 押しボタンは、絵に描いてある「はじめる」(852x1846 の x185-668, y1440-1590 → 画面では x93-337, y727-803) と重なる
+    const cx = (title.start.l + title.start.r) / 2, cy = (title.start.t + title.start.b) / 2;
+    ok(Math.abs(cx - 215) < 6 && cy > 735 && cy < 795, `押しボタンが絵の「はじめる」の真上にある (中心 ${Math.round(cx)},${Math.round(cy)})`);
+    ok(title.start.t >= SAFE_TOP && title.start.b <= H - SAFE_BOTTOM, '押しボタンが安全域の中');
+    ok(title.menuHidden, 'はじめは メニューが出ていない');
+    ok(title.foot.every((b) => b.l >= 0 && b.r <= W && b.b <= H - SAFE_BOTTOM + 8 && b.t > title.start.b), '下の「あそびかた」「おと」が安全域の中で、はじめるボタンと重ならない');
+
+    // 「はじめる」を押すと、モードを選ぶ札が出る。外をタップで閉じる
+    await page.locator('#btnStart').tap();
+    await sleep(400);
+    const menu = await page.evaluate(() => {
+      const r = (id) => { const b = document.getElementById(id).getBoundingClientRect(); return { id, l: b.left, t: b.top, r: b.right, b: b.bottom }; };
+      return { shown: !document.getElementById('menuSheet').hidden, buttons: ['btnCpu', 'btnTwo', 'btnTower'].map(r) };
+    });
+    ok(menu.shown, '「はじめる」でモードの札が出る');
+    ok(menu.buttons.every((b) => b.l >= 0 && b.r <= W && b.t >= SAFE_TOP && b.b <= H - SAFE_BOTTOM), 'モードのボタンが 安全域の中に収まる');
     const btnOverlap = [];
-    for (let i = 0; i < title.buttons.length; i++) for (let j = i + 1; j < title.buttons.length; j++) {
-      const a = title.buttons[i], b = title.buttons[j];
+    for (let i = 0; i < menu.buttons.length; i++) for (let j = i + 1; j < menu.buttons.length; j++) {
+      const a = menu.buttons[i], b = menu.buttons[j];
       if (a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b) btnOverlap.push(a.id + '×' + b.id);
     }
-    ok(btnOverlap.length === 0, 'タイトルのボタンどうしが重ならない ' + btnOverlap.join(','));
-
-    // 後ろの塔が描かれている (まん中が背景色ではなく、木の色)
-    const px = await page.evaluate(() => window.__app.view().sample(215, 520));
-    ok(px[0] > 120 && px[0] > px[2] + 25, `うしろに 木の塔が見える (画素 ${px.join(',')})`);
+    ok(btnOverlap.length === 0, 'モードのボタンどうしが重ならない ' + btnOverlap.join(','));
+    await touch.tap(215, 150);
+    await sleep(300);
+    ok(await page.evaluate(() => document.getElementById('menuSheet').hidden), '札の外をタップすると閉じる');
+    await page.locator('#btnStart').tap();
+    await sleep(300);
 
     // ------------------------------------------------ たいせんを始める
     section('たいせん: 始まり');
@@ -227,6 +239,8 @@ async function run() {
     }
 
     // 低めの段をつかんで、軸にそってひっぱる
+    // 断られたときの赤い光が消えるのを待つ
+    await page.waitForFunction(() => window.__app.towerIds().every((x) => !window.__app.view().glowOf(x).visible), null, { timeout: 15000 });
     const target = await findVisibleBlock(page, 'b.layer >= 4 && b.layer <= 11');
     ok(!!target, `ぬける ブロックが見える (${target && target.layer + '段' + target.slot + '番, ' + target.axis + '向き'})`);
     const before = await page.evaluate((id) => { const A = window.__app; return { pose: A.pose(id), n: A.towerIds().length }; }, target.id);
@@ -234,6 +248,10 @@ async function run() {
     await sleep(120);
     s = await state(page);
     ok(s.phase === 'pull', `つかむと ひっぱり中になる (${s.phase})`);
+    const glow = await page.evaluate((id) => window.__app.view().glowOf(id), target.id);
+    ok(glow.visible && glow.opacity > 0.3, `つかんだブロックが光る (光り ${glow.opacity.toFixed(2)})`);
+    const others = await page.evaluate((id) => { const v = window.__app.view(); return window.__app.towerIds().filter((x) => x !== id && v.glowOf(x).visible).length; }, target.id);
+    ok(others === 0, `光るのは つかんだ 1 本だけ (ほかに光る物 ${others} 本)`);
     // 3 割ほど引いた所で、ブロックが指にそって動いている
     const k = 0.25;
     await touch.move(target.at.x + (target.to.x - target.at.x) * k, target.at.y + (target.to.y - target.at.y) * k);
@@ -389,6 +407,8 @@ async function run() {
 
     // ------------------------------------------------ ふたりで
     section('ふたりで たいせん');
+    await page.locator('#btnStart').tap();
+    await sleep(250);
     await page.locator('#btnTwo').tap();
     await sleep(700);
     const two = await page.evaluate(() => ({ name: document.getElementById('statusName').textContent, opp: window.__app.state().opp, phase: window.__app.state().phase }));
@@ -407,6 +427,8 @@ async function run() {
 
     // ------------------------------------------------ ハイタワー
     section('ハイタワー');
+    await page.locator('#btnStart').tap();
+    await sleep(250);
     await page.locator('#btnTower').tap();
     await sleep(900);
     const tw0 = await page.evaluate(() => {

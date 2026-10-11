@@ -64,34 +64,32 @@
     <button type="button" id="btnPlace" class="btn btn-primary" hidden><span class="label">ここに おく</span></button>
   </div>
 
-  <!-- タイトル -->
+  <!-- タイトル: 絵 (title.jpg) の上に、押せる所だけ重ねる。絵に描いてあるボタンは見た目だけ -->
   <section id="title">
-    <div class="logo" aria-label="ぐらぐらタワー">
-      <div class="row r0"><span class="tile t1">ぐ</span><span class="tile t2">ら</span><span class="tile t3">ぐ</span><span class="tile t1">ら</span></div>
-      <div class="row r1"><span class="tile t2 w">タ</span><span class="tile t3 w">ワ</span><span class="tile t1 w">ー</span></div>
-    </div>
-    <p class="tagline">ぬいて、のせて、くずさない。</p>
+    <button type="button" id="btnStart" class="start-hit" aria-label="はじめる"></button>
 
-    <div class="menu">
-      <div class="card">
-        <button type="button" id="btnCpu" class="btn btn-primary big">
-          <span class="ttl">CPUと たいせん</span>
-          <span class="sub">くずした方の まけ</span>
-        </button>
-        <div id="cpuLevels" class="chips" role="group" aria-label="CPUの強さ">
-          <button type="button" class="chip" data-level="easy" aria-pressed="false">やさしい</button>
-          <button type="button" class="chip" data-level="normal" aria-pressed="true">ふつう</button>
-          <button type="button" class="chip" data-level="hard" aria-pressed="false">つよい</button>
+    <div id="menuSheet" hidden>
+      <div class="menu">
+        <div class="card">
+          <button type="button" id="btnCpu" class="btn btn-primary big">
+            <span class="ttl">CPUと たいせん</span>
+            <span class="sub">くずした方の まけ</span>
+          </button>
+          <div id="cpuLevels" class="chips" role="group" aria-label="CPUの強さ">
+            <button type="button" class="chip" data-level="easy" aria-pressed="false">やさしい</button>
+            <button type="button" class="chip" data-level="normal" aria-pressed="true">ふつう</button>
+            <button type="button" class="chip" data-level="hard" aria-pressed="false">つよい</button>
+          </div>
         </div>
+        <button type="button" id="btnTwo" class="btn btn-wood big">
+          <span class="ttl">ふたりで たいせん</span>
+          <span class="sub">1台を かわりばんこ</span>
+        </button>
+        <button type="button" id="btnTower" class="btn btn-wood big">
+          <span class="ttl">ハイタワー</span>
+          <span class="sub">どこまで 高くつめる？ ベスト <b id="bestTower">—</b></span>
+        </button>
       </div>
-      <button type="button" id="btnTwo" class="btn btn-wood big">
-        <span class="ttl">ふたりで たいせん</span>
-        <span class="sub">1台を かわりばんこ</span>
-      </button>
-      <button type="button" id="btnTower" class="btn btn-wood big">
-        <span class="ttl">ハイタワー</span>
-        <span class="sub">どこまで 高くつめる？ ベスト <b id="bestTower">—</b></span>
-      </button>
     </div>
 
     <div class="foot">

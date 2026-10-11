@@ -282,8 +282,14 @@
         edgeMat.clone());
       edge.renderOrder = 10;
       mesh.add(edge);
+      // 選んだ 1 本を光らせるカバー。足し算で重ねるので、木の色の上で明るく色づいて見える
+      const glow = new THREE.Mesh(new THREE.BoxGeometry(dim.l * 1.015, dim.h * 1.03, dim.w * 1.03),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false }));
+      glow.visible = false;
+      glow.renderOrder = 9;
+      mesh.add(glow);
       blockGroup.add(mesh);
-      const rec = { mesh: mesh, edge: edge, flash: 0, flashColor: new THREE.Color(0xffffff), hold: 0 };
+      const rec = { mesh: mesh, edge: edge, glow: glow, flash: 0, flashColor: new THREE.Color(0xffffff), hold: 0 };
       meshes.set(id, rec);
       return rec;
     }
@@ -295,6 +301,8 @@
       rec.mesh.geometry.dispose();
       rec.edge.geometry.dispose();
       rec.edge.material.dispose();
+      rec.glow.geometry.dispose();
+      rec.glow.material.dispose();
       meshes.delete(id);
     }
 
@@ -536,8 +544,12 @@
           rec.edge.material.color.copy(rec.flashColor);
           rec.edge.material.opacity = a;
           rec.edge.visible = true;
+          rec.glow.material.color.copy(rec.flashColor).multiplyScalar(0.62);
+          rec.glow.material.opacity = rec.hold ? 0.75 + Math.sin(clock * 9) * 0.25 : a;
+          rec.glow.visible = true;
         } else if (rec.edge.visible) {
           rec.edge.visible = false;
+          rec.glow.visible = false;
           rec.edge.material.opacity = 0;
         }
       });
@@ -602,6 +614,7 @@
       addBlock: addBlock, removeBlock: removeBlock, clearBlocks: clearBlocks, setPose: setPose,
       hasBlock: function (id) { return meshes.has(id); },
       flash: flash, flashOff: flashOff,
+      glowOf: function (id) { const rec = meshes.get(id); return rec ? { visible: rec.glow.visible, opacity: rec.glow.material.opacity } : { visible: false, opacity: 0 }; },
       setGhosts: setGhosts, setDropLine: setDropLine,
       puff: puff, confetti: confetti, bump: bump,
       setCamera: setCamera, getCamera: getCamera,

@@ -17,8 +17,10 @@ const read = (f) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
 let html = read('index.html');
 
-// <link rel="stylesheet"> を <style> に
-html = html.replace(/<link rel="stylesheet" href="\.\/([^"]+)">/g, (_, f) => `<style>\n${read(f)}\n</style>`);
+// <link rel="stylesheet"> を <style> に (CSS の中の title.jpg は data URI にする)
+const titleJpg = fs.readFileSync(path.join(ROOT, 'title.jpg')).toString('base64');
+html = html.replace(/<link rel="stylesheet" href="\.\/([^"]+)">/g, (_, f) =>
+  `<style>\n${read(f).replace('url("./title.jpg")', `url("data:image/jpeg;base64,${titleJpg}")`)}\n</style>`);
 
 // アイコン: apple-touch-icon は data URI に、SVG のアイコンも
 const png = fs.readFileSync(path.join(ROOT, 'apple-touch-icon.png')).toString('base64');

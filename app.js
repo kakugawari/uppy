@@ -22,7 +22,7 @@
   const P = window.Physics;
   const R = window.Render;
   const SND = window.Sound;
-  const VERSION = 'v1';
+  const VERSION = 'v2';
 
   const $ = function (id) { return document.getElementById(id); };
   const els = {
@@ -38,7 +38,7 @@
     resultBadge: $('resultBadge'),
     pause: $('pause'), howto: $('howto'),
     bestTower: $('bestTower'), vsRecord: $('vsRecord'), ver: $('ver'),
-    cpuLevels: $('cpuLevels'), cpuPicker: $('cpuPicker'), chipEasy: null
+    menuSheet: $('menuSheet'), cpuLevels: $('cpuLevels'), cpuPicker: $('cpuPicker'), chipEasy: null
   };
 
   // ---------------------------------------------------------------- 状態
@@ -249,6 +249,7 @@
     S.phase = 'idle';
     SND.slide(0);
     show(els.title, true);
+    show(els.menuSheet, false);
     show(els.hud, false);
     show(els.result, false);
     show(els.pause, false);
@@ -321,6 +322,8 @@
     return set;
   }
 
+  const GRAB_DELAY = 0.16;      // つかんでから、光るのを見せる時間 (秒)。そのあいだブロックは動かさない
+
   function startPull(id, clientX, clientY) {
     const b = tower.byId.get(id);
     const info = tower.canPull(id);
@@ -329,10 +332,10 @@
     const pose = sim.pose(id);
     const pp = view.planePoint(clientX, clientY, pose.y) || { x: pose.x, z: pose.z };
     sim.beginPull(id, axis);
-    S.pull = { id: id, axis: axis, c0: axis === 'x' ? pose.x : pose.z, p0: pp, y: pose.y, target: 0 };
+    S.pull = { id: id, axis: axis, c0: axis === 'x' ? pose.x : pose.z, p0: pp, y: pose.y, target: 0, arm: GRAB_DELAY };
     S.pull.target = S.pull.c0;
     S.phase = 'pull';
-    view.flash(id, '#ffe27d', 1, true);
+    view.flash(id, '#ffd84a', 1, true);
     SND.pick();
     hideToast();
     return true;
@@ -345,7 +348,7 @@
     if (!pp) return;
     const d = pl.axis === 'x' ? pp.x - pl.p0.x : pp.z - pl.p0.z;
     pl.target = clamp(pl.c0 + d, -4.6, 4.6);
-    sim.setPullTarget(pl.id, pl.target, 9);
+    if (pl.arm <= 0) sim.setPullTarget(pl.id, pl.target, 9);
   }
 
   function releasePull() {
@@ -907,7 +910,7 @@
           gesture = { kind: 'pull' };
           return;
         }
-        view.flash(hit.id, '#ff6b6b', 0.5);
+        view.flash(hit.id, '#ff5a5a', 0.7);
         toast(info.reason, 1600);
         SND.nope();
       }
@@ -973,12 +976,7 @@
     if (S.paused) { view.update(0); view.draw(); return; }
 
     if (S.screen === 'title') {
-      // うしろで ゆっくり回る
-      const cam = view.getCamera();
-      view.setCamera({ yaw: cam.yaw + dt * 0.12 });
-      sim.step(dt);
-      view.update(dt);
-      view.draw();
+      // タイトルは絵でおおわれているので、うしろの 3D は描かない (電池と熱をむだにしない)
       return;
     }
 
@@ -1020,6 +1018,12 @@
     switch (S.phase) {
       case 'pick': break;
       case 'pull': {
+        const pl0 = S.pull;
+        if (pl0 && pl0.arm > 0) {
+          pl0.arm -= dt;
+          if (pl0.arm <= 0) sim.setPullTarget(pl0.id, pl0.target, 9);   // 光ったあと、指の位置へ動きだす
+          break;
+        }
         checkExtracted();
         const pl = S.pull;
         if (pl) SND.slide(Math.min(1, Math.abs(sim.pullPos(pl.id) - pl.target) * 0.4 + Math.abs(pl.target - pl.c0) * 0.02) * 0.9);
@@ -1068,6 +1072,8 @@
     document.querySelectorAll('[data-level]').forEach(function (b) {
       b.addEventListener('click', function () { S.level = b.dataset.level; SND.tick(); refreshTitle(); });
     });
+    $('btnStart').addEventListener('click', function () { SND.unlock(); SND.tick(); show(els.menuSheet, true); });
+    els.menuSheet.addEventListener('click', function (e) { if (e.target === els.menuSheet) show(els.menuSheet, false); });
     $('btnCpu').addEventListener('click', function () { SND.unlock(); startVersus('cpu', S.level); });
     $('btnTwo').addEventListener('click', function () { SND.unlock(); startVersus('two', S.level); });
     $('btnTower').addEventListener('click', function () { SND.unlock(); startTower(); });
