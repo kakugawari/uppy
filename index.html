@@ -2,34 +2,162 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>アプリの雛形</title>
-<meta name="description" content="ビルドなしで動くアプリの雛形">
-<meta name="theme-color" content="#151a2e">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>ぐらぐらタワー</title>
+<meta name="description" content="木のブロックを1本ずつぬいて積む、ぐらぐらタワーゲーム。たいせんと、ハイタワー。">
+<meta name="theme-color" content="#141a30">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ぐらぐらタワー">
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
 
-<div id="app">
-  <header id="topbar">
-    <h1 class="title">アプリの雛形</h1>
-    <div class="topbar-actions">
-      <button type="button" id="btnAction" class="btn btn-primary">ためす</button>
-    </div>
-  </header>
+<div id="app" data-screen="title">
+  <canvas id="view"></canvas>
+  <div id="shade"></div>
 
-  <main id="stage">
-    <p class="lead">ここにアプリを作る。</p>
-    <p class="result" id="result">—</p>
-    <p class="note">
-      ロジックは <code>src/core.js</code> に、画面は <code>src/app.js</code> に書く。<br>
-      <code>npm test</code> でロジックを、<code>npm run test:ui</code> で画面を確かめる。
-    </p>
-  </main>
+  <div id="loading">よみこみ中…</div>
+
+  <!-- あそんでいる間の表示 -->
+  <div id="hud" hidden>
+    <button type="button" id="btnPause" class="round" aria-label="いちじ ていし">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1.2" fill="currentColor"/><rect x="14" y="5" width="4" height="14" rx="1.2" fill="currentColor"/></svg>
+    </button>
+    <div id="status" class="pill" data-p="0" hidden>
+      <span id="statusName"></span>
+      <span id="statusSub"></span>
+    </div>
+    <div id="counter" hidden>
+      <div id="counterNum">0</div>
+      <div id="counterUnit">だん</div>
+      <div id="counterCm">0.0 cm</div>
+      <div id="counterBest"></div>
+    </div>
+  </div>
+
+  <div id="gauge" data-level="lo" hidden aria-label="ゆれ">
+    <div id="gaugeTrack"><div id="gaugeFill"></div></div>
+    <span>ゆれ</span>
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <div id="camBtns" hidden>
+    <button type="button" id="btnCamL" class="round" aria-label="左へまわす">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <span class="cam-label">みる向き</span>
+    <button type="button" id="btnCamR" class="round" aria-label="右へまわす">
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+  <div id="actions" hidden>
+    <button type="button" id="btnRotate" class="btn btn-sub" hidden>
+      <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.6-5.9M20 4v5h-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>むき</span>
+    </button>
+    <button type="button" id="btnPlace" class="btn btn-primary" hidden><span class="label">ここに おく</span></button>
+  </div>
+
+  <!-- タイトル -->
+  <section id="title">
+    <div class="logo" aria-label="ぐらぐらタワー">
+      <div class="row r0"><span class="tile t1">ぐ</span><span class="tile t2">ら</span><span class="tile t3">ぐ</span><span class="tile t1">ら</span></div>
+      <div class="row r1"><span class="tile t2 w">タ</span><span class="tile t3 w">ワ</span><span class="tile t1 w">ー</span></div>
+    </div>
+    <p class="tagline">ぬいて、のせて、くずさない。</p>
+
+    <div class="menu">
+      <div class="card">
+        <button type="button" id="btnCpu" class="btn btn-primary big">
+          <span class="ttl">CPUと たいせん</span>
+          <span class="sub">くずした方の まけ</span>
+        </button>
+        <div id="cpuLevels" class="chips" role="group" aria-label="CPUの強さ">
+          <button type="button" class="chip" data-level="easy" aria-pressed="false">やさしい</button>
+          <button type="button" class="chip" data-level="normal" aria-pressed="true">ふつう</button>
+          <button type="button" class="chip" data-level="hard" aria-pressed="false">つよい</button>
+        </div>
+      </div>
+      <button type="button" id="btnTwo" class="btn btn-wood big">
+        <span class="ttl">ふたりで たいせん</span>
+        <span class="sub">1台を かわりばんこ</span>
+      </button>
+      <button type="button" id="btnTower" class="btn btn-wood big">
+        <span class="ttl">ハイタワー</span>
+        <span class="sub">どこまで 高くつめる？ ベスト <b id="bestTower">—</b></span>
+      </button>
+    </div>
+
+    <div class="foot">
+      <button type="button" id="btnHow" class="link">あそびかた</button>
+      <span class="dot">・</span>
+      <span class="rec">せんせき <b id="vsRecord">—</b></span>
+      <span class="dot">・</span>
+      <button type="button" id="btnSound" class="link" aria-pressed="true">おと：あり</button>
+      <span id="ver" class="ver"></span>
+    </div>
+  </section>
+
+  <!-- けっか -->
+  <section id="result" hidden>
+    <div class="sheet">
+      <div id="resultBadge" class="badge" hidden>NEW RECORD!</div>
+      <div id="resultTitle" class="eyebrow"></div>
+      <div id="resultBig" class="big-text"></div>
+      <div id="resultLines"></div>
+      <div class="btns">
+        <button type="button" id="btnAgain" class="btn btn-primary"><span class="label">もういちど</span></button>
+        <button type="button" id="btnMenu" class="btn btn-wood"><span class="label">メニューへ</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ていし -->
+  <section id="pause" hidden>
+    <div class="sheet">
+      <div class="big-text">ていし中</div>
+      <div class="btns col">
+        <button type="button" id="btnResume" class="btn btn-primary"><span class="label">つづける</span></button>
+        <button type="button" id="btnRestart" class="btn btn-wood"><span class="label">はじめからやりなおす</span></button>
+        <button type="button" id="btnQuit" class="btn btn-wood"><span class="label">メニューへ</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- あそびかた -->
+  <section id="howto" hidden>
+    <div class="sheet scroll">
+      <div class="big-text">あそびかた</div>
+      <h3>たいせん</h3>
+      <ol>
+        <li>ぬきたい ブロックを <b>ゆびで つかんで</b>、まっすぐ ひっぱります。</li>
+        <li>ぬけたら <b>ひかる所</b>を タップして、「ここに おく」。いちばん上へ のせます。</li>
+        <li>かわりばんこ。<b>くずした人の まけ</b>です。</li>
+      </ol>
+      <p class="small">いちばん上の だんは ぬけません。そっと ひくほど 塔は ゆれません（画面の「ゆれ」を見よう）。ゆびで なぞって 見る向きを かえられます。</p>
+      <h3>ハイタワー</h3>
+      <ol>
+        <li>ゆれている ブロックを <b>タップで おとして</b> 積みます。</li>
+        <li>「むき」で ブロックを 90度 まわせます。</li>
+        <li>だいに おちたら おしまい。<b>ぴったり</b>で れんぞくすると いい音が鳴ります。</li>
+      </ol>
+      <div class="btns"><button type="button" id="btnHowClose" class="btn btn-primary"><span class="label">とじる</span></button></div>
+    </div>
+  </section>
 </div>
 
+<script src="./three.min.js"></script>
+<script src="./rapier.js"></script>
 <script src="./core.js"></script>
+<script src="./physics.js"></script>
+<script src="./render.js"></script>
+<script src="./audio.js"></script>
 <script src="./app.js"></script>
 </body>
 </html>

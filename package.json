@@ -1,12 +1,16 @@
 {
-  "name": "app-template",
+  "name": "guragura-tower",
   "version": "1.0.0",
-  "description": "ビルドなしで動くアプリの雛形 (進め方のルールつき)",
+  "description": "ぐらぐらタワー: 木のブロックをぬいて積むゲーム (ビルドなしで動く)",
   "private": true,
   "scripts": {
     "start": "node serve.js",
     "test": "node --test *.test.js",
-    "test:ui": "node browser-test.js"
+    "test:ui": "node browser-test.js",
+    "build": "node build-single.js"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
 }
