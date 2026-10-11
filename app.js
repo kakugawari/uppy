@@ -22,7 +22,7 @@
   const P = window.Physics;
   const R = window.Render;
   const SND = window.Sound;
-  const VERSION = 'v3';
+  const VERSION = 'v4';
 
   const $ = function (id) { return document.getElementById(id); };
   const els = {
@@ -33,7 +33,7 @@
     counter: $('counter'), counterNum: $('counterNum'), counterCm: $('counterCm'), counterBest: $('counterBest'),
     gauge: $('gauge'), gaugeFill: $('gaugeFill'),
     actions: $('actions'), btnPlace: $('btnPlace'), btnRotate: $('btnRotate'),
-    camBtns: $('camBtns'),
+    camBtns: $('camBtns'), remain: $('remain'), remainNum: $('remainNum'), avatar: $('avatar'), hand: $('hand'),
     result: $('result'), resultTitle: $('resultTitle'), resultBig: $('resultBig'), resultLines: $('resultLines'),
     resultBadge: $('resultBadge'),
     pause: $('pause'), howto: $('howto'),
@@ -104,14 +104,56 @@
   }
 
   let toastTimer = 0;
-  function toast(text, ms) {
-    els.toast.textContent = text;
+  /** [[...]] で囲んだ所は金色に。icon を付けると、右に「タップする手」の絵が出る。 */
+  function toast(text, ms, icon) {
+    els.toast.textContent = '';
+    text.split(/(\[\[[^\]]*\]\])/).forEach(function (part) {
+      if (!part) return;
+      if (part.slice(0, 2) === '[[') {
+        const em = document.createElement('em');
+        em.textContent = part.slice(2, -2);
+        els.toast.appendChild(em);
+      } else els.toast.appendChild(document.createTextNode(part));
+    });
+    if (icon) {
+      const ns = 'http://www.w3.org/2000/svg';
+      const svg = document.createElementNS(ns, 'svg');
+      svg.setAttribute('class', 'tapicon'); svg.setAttribute('viewBox', '0 0 48 56');
+      const use = document.createElementNS(ns, 'use'); use.setAttribute('href', '#icHand');
+      svg.appendChild(use); els.toast.appendChild(svg);
+    }
     els.toast.classList.add('on');
     toastTimer = (ms || 2200) / 1000;
   }
   function hideToast() {
     els.toast.classList.remove('on');
     toastTimer = 0;
+  }
+
+  // ---------------------------------------------------------------- さいしょの手番の「ここをタップ」
+  let tutDone = false;
+  try { tutDone = localStorage.getItem('jenga.tut') === '1'; } catch (e) { /* 読めなければ毎回出す */ }
+
+  function hideHand() { els.hand.hidden = true; }
+
+  /** ぬける 1 本を画面から探して、その上に手を出す (見えているブロックの上を実際に調べる) */
+  function showHand() {
+    if (tutDone || S.mode !== "vs") return;
+    const ids = pickableIds();
+    let best = null;
+    for (let y = 380; y < 620; y += 8) {
+      for (let x = 150; x < 290; x += 8) {
+        const hit = view.pick(x, y, ids);
+        if (!hit) continue;
+        const b = tower.byId.get(hit.id);
+        if (b && tower.canPull(hit.id).ok && b.layer >= 6 && b.layer <= 12) { best = { x: x, y: y, id: hit.id }; break; }
+      }
+      if (best) break;
+    }
+    if (!best) return;
+    els.hand.style.left = best.x + 'px';
+    els.hand.style.top = best.y + 'px';
+    els.hand.hidden = false;
   }
 
   function show(el, on) {
@@ -187,8 +229,8 @@
     S.seed = seed != null ? seed : ((Math.random() * 4294967296) >>> 0);
     resetWorld();
     sim.setTable(-1.2);
-    sim.setPedestal(5, 0, 1.2);
-    view.setStage(5, 1.2);
+    sim.setPedestal(4.4, 0, 1.2);
+    view.setStage(4.4, 1.2);
     const blocks = C.buildTower(S.seed);
     blocks.forEach(addBlockBoth);
     tower = new C.Tower(blocks);
@@ -197,7 +239,6 @@
     S.player = 0;                                    // はじめは いつも 1 人め (あなた / プレイヤー1)
     S.lastMover = S.player;
     S.turns = 0; S.removed = 0; S.wobble = 0; S.quiet = 0; S.overTimer = 0; S.collapsedBy = -1;
-    view.setBackground('#141a30', '#4a4660');
     view.setCamera({ yaw: 0.62, pitch: 0.46 }, false);
     frameCamera(true);
     enterScreen();
@@ -217,7 +258,6 @@
     };
     S.phase = 'swing';
     S.wobble = 0;
-    view.setBackground('#1a2038', '#51486a');
     view.setCamera({ yaw: 0.2, pitch: 0.3, dist: 34 }, true);
     frameCamera(true);
     spawnCrane();
@@ -234,6 +274,8 @@
     show(els.camBtns, S.mode === 'vs');
     show(els.counter, S.mode === 'tower');
     show(els.status, S.mode === 'vs');
+    show(els.remain, S.mode === 'vs');
+    hideHand();
     show(els.gauge, S.mode === 'vs');
     show(els.actions, S.mode === 'tower');
     show(els.btnPlace, false);
@@ -254,6 +296,8 @@
     show(els.result, false);
     show(els.pause, false);
     show(els.actions, false);
+    show(els.remain, false);
+    hideHand();
     hideToast();
     els.app.dataset.screen = 'title';
     buildBackdrop();
@@ -264,8 +308,8 @@
   function buildBackdrop() {
     resetWorld();
     sim.setTable(-1.2);
-    sim.setPedestal(5, 0, 1.2);
-    view.setStage(5, 1.2);
+    sim.setPedestal(4.4, 0, 1.2);
+    view.setStage(4.4, 1.2);
     const blocks = C.buildTower(((Math.random() * 1e9) >>> 0));
     blocks.forEach(addBlockBoth);
     tower = new C.Tower(blocks);
@@ -273,7 +317,6 @@
     // 見ばえのため 4 本ほど ぬいて斜めに積む
     syncPoses();
     S.mode = null;
-    view.setBackground('#141a30', '#4a4660');
     view.setCamera({ yaw: 0.3, pitch: 0.34, dist: 38, ty: 4.8 }, true);
     S.backdrop = true;
   }
@@ -290,7 +333,8 @@
     if (S.opp === 'cpu' && S.player === 1) {
       startCpu();
     } else if (S.turns === 0) {
-      toast('ぬきたい ブロックを ゆびで ひっぱろう', 3000);
+      toast('ぬきたい ブロックを [[タップして]] ひっぱろう', 3600, true);
+      S.handWait = 0.6;                 // カメラが落ちつくのを待ってから手を出す
     } else {
       toast(playerName(S.player) + ' の ばん', 1400);
     }
@@ -301,6 +345,9 @@
       els.statusName.textContent = playerName(S.player) + (S.opp === 'cpu' && S.player === 1 ? ' が かんがえ中…' : ' の ばん');
       els.statusSub.textContent = 'ぬいた ' + S.removed + ' 本';
       els.status.dataset.p = String(S.player);
+      els.avatar.firstElementChild.setAttribute('href', S.player === 0 ? '#avShiba' : S.opp === 'cpu' ? '#avRobot' : '#avPanda');
+      // のこり = まだ ぬける ブロックの数 (いちばん上の段は ぬけない)
+      els.remainNum.textContent = String(tower.pullable().length);
     } else if (S.mode === 'tower' && S.t) {
       els.counterNum.textContent = String(S.t.count);
       els.counterCm.textContent = C.heightCm(S.t.count).toFixed(1) + ' cm';
@@ -377,6 +424,7 @@
     view.flashOff(id);
     S.pull = null;
     S.removed++;
+    if (!tutDone && !(S.opp === 'cpu' && S.player === 1)) { tutDone = true; try { localStorage.setItem('jenga.tut', '1'); } catch (e) { /* 保存できなくてよい */ } }
     SND.slide(0);
     SND.pick();
     sim.teleport(id, { x: pose.x, y: pose.y, z: pose.z }, C.layerAxis(b.layer) === 'z' ? Math.PI / 2 : 0);
@@ -875,6 +923,7 @@
 
   function onPointerDown(ev) {
     SND.unlock();
+    hideHand();
     if (S.screen !== 'play' || S.paused) return;
     els.canvas.setPointerCapture(ev.pointerId);
     pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY, t: performance.now() });
@@ -1016,7 +1065,9 @@
 
   function updateGame(dt, realDt) {
     switch (S.phase) {
-      case 'pick': break;
+      case 'pick':
+        if (S.handWait > 0) { S.handWait -= dt; if (S.handWait <= 0) showHand(); }
+        break;
       case 'pull': {
         const pl0 = S.pull;
         if (pl0 && pl0.arm > 0) {
@@ -1047,8 +1098,8 @@
     const skip = S.pull ? new Set([S.pull.id]) : null;
     const sp = sim.maxSpeed(towerIds(), skip);
     S.wobble = S.wobble * 0.7 + sp * 0.3;
-    const v = clamp(S.wobble / 1.6, 0, 1);
-    els.gaugeFill.style.transform = 'scaleY(' + v.toFixed(3) + ')';
+    const v = Math.max(0.07, clamp(S.wobble / 1.6, 0, 1));      // ほんの少しは いつも緑が見える
+    els.gaugeFill.style.clipPath = 'inset(' + ((1 - v) * 100).toFixed(1) + '% 0 0 0 round 9px)';
     els.gauge.dataset.level = v > 0.66 ? 'hi' : v > 0.33 ? 'mid' : 'lo';
   }
 
