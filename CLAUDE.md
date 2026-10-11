@@ -55,7 +55,7 @@ browser-test.js           ブラウザで動かすテスト (指の操作を再�
 serve.js                  開発用サーバー
 three.min.js              three.js 0.149.0 (そのまま。書き換えない)
 rapier.js                 Rapier 0.21.0 (wasm 同梱の cjs を <script> と node 両方で読めるよう くるんだだけ)
-build-single.js           全部を 1 枚の HTML にまとめる (テストプレイ用の Artifact)
+build-single.js           全部を 1 枚の HTML にまとめる。`--artifact` を付けると Artifact 用 (外側の html/head/body を外す)。4.8MB
 icon.svg / apple-touch-icon.png   アイコン (iOS は SVG を使えないので PNG も)
 ```
 

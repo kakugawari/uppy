@@ -1134,7 +1134,14 @@
     }
     resize();
     RAPIER = window.RAPIER;
-    await RAPIER.init();
+    try {
+      await RAPIER.init();
+    } catch (err) {
+      // wasm を動かせない場所 (CSP などで禁止) では、理由が分かるように出す
+      els.loading.hidden = false;
+      els.loading.textContent = '物理エンジンを起動できません (' + (err && err.name) + ')';
+      throw err;
+    }
     bindUi();
     toTitle();
     show(els.loading, false);
