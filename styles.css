@@ -194,12 +194,72 @@ body {
 #menuSheet {
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 0 calc(var(--sr) + 22px) calc(var(--sb) + 64px) calc(var(--sl) + 22px);
-  background: linear-gradient(180deg, rgba(10, 8, 18, 0) 18%, rgba(10, 8, 18, 0.9) 52%, rgba(10, 8, 18, 0.94) 100%);
+  overflow: hidden;
+  /* 絵の上と下に余る所は、絵のふちの色でうめる (絵のふちはぼかして溶かす) */
+  background: linear-gradient(180deg, #201c28 0, #201c28 var(--st), #774120 100%);
   animation: fadeIn .22s ease both;
+}
+.menu-art {
+  --u: 0.5px;
+  position: absolute;
+  left: calc((100% - 941 * var(--u)) / 2);
+  top: var(--st);
+  width: calc(941 * var(--u));
+  height: calc(1672 * var(--u));
+  background: url("./menu.jpg") 0 0 / 100% 100% no-repeat;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
+}
+.hit {
+  position: absolute;
+  left: calc(var(--x) * var(--u));
+  top: calc(var(--y) * var(--u));
+  width: calc(var(--w) * var(--u));
+  height: calc(var(--h) * var(--u));
+  border: 0;
+  border-radius: 22px;
+  padding: 0;
+  background: rgba(255, 240, 180, 0);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background .1s ease, transform .1s ease;
+}
+.hit:active { background: rgba(255, 240, 180, 0.3); transform: scale(.975); }
+/* むずかしさの 3 つは、選んだものがわかるよう、絵の上から描きなおす */
+.chipbtn {
+  font: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  border-radius: 19px;
+  color: #f6e6c8;
+  background: linear-gradient(180deg, #5b3a22, #3b2415);
+  box-shadow: inset 0 0 0 2px #a97a45, 0 2px 4px rgba(0, 0, 0, .4);
+}
+.chipbtn:active { background: linear-gradient(180deg, #7a5230, #4e311c); }
+.chipbtn[aria-pressed="true"] {
+  color: #4a2a05;
+  background: linear-gradient(180deg, #fff0a6, #ffc94a);
+  box-shadow: inset 0 0 0 2px #fff6c9, 0 0 14px 2px rgba(255, 205, 90, .75);
+}
+#btnMenuBack {
+  position: absolute;
+  left: calc(var(--sl) + 14px);
+  top: calc(var(--st) + 8px);
+}
+#title:has(#menuSheet:not([hidden])) .foot { display: none; }
+#resultLines2 { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 18px; }
+#settings {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--st) + 20px) 22px calc(var(--sb) + 20px);
+  background: rgba(8, 10, 24, 0.62);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 30;
+  animation: fadeIn .25s ease both;
 }
 
 .menu {

@@ -159,7 +159,7 @@ async function run() {
         bg: getComputedStyle(document.getElementById('title')).backgroundImage,
         start: r(document.getElementById('btnStart')),
         menuHidden: document.getElementById('menuSheet').hidden,
-        foot: ['btnHow', 'btnSound'].map((id) => ({ id, ...r(document.getElementById(id)) })),
+        foot: ['btnHow'].map((id) => ({ id, ...r(document.getElementById(id)) })),
         ver: document.getElementById('ver').textContent
       };
     });
@@ -174,7 +174,7 @@ async function run() {
     ok(Math.abs(cx - 215) < 6 && cy > 735 && cy < 795, `押しボタンが絵の「はじめる」の真上にある (中心 ${Math.round(cx)},${Math.round(cy)})`);
     ok(title.start.t >= SAFE_TOP && title.start.b <= H - SAFE_BOTTOM, '押しボタンが安全域の中');
     ok(title.menuHidden, 'はじめは メニューが出ていない');
-    ok(title.foot.every((b) => b.l >= 0 && b.r <= W && b.b <= H - SAFE_BOTTOM + 8 && b.t > title.start.b), '下の「あそびかた」「おと」が安全域の中で、はじめるボタンと重ならない');
+    ok(title.foot.every((b) => b.l >= 0 && b.r <= W && b.b <= H - SAFE_BOTTOM + 8 && b.t > title.start.b), '下の「あそびかた」が安全域の中で、はじめるボタンと重ならない');
 
     // 「はじめる」を押すと、モードを選ぶ札が出る。外をタップで閉じる
     await page.locator('#btnStart').tap();
@@ -191,9 +191,29 @@ async function run() {
       if (a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b) btnOverlap.push(a.id + '×' + b.id);
     }
     ok(btnOverlap.length === 0, 'モードのボタンどうしが重ならない ' + btnOverlap.join(','));
-    await touch.tap(215, 150);
+    // むずかしさ: 押した 1 つだけが選ばれた見た目になる
+    await page.locator('[data-level="easy"]').tap();
+    await sleep(150);
+    const lv = await page.evaluate(() => ({ easy: document.querySelector('[data-level="easy"]').getAttribute('aria-pressed'), normal: document.querySelector('[data-level="normal"]').getAttribute('aria-pressed'), level: window.__app.state().level }));
+    ok(lv.easy === 'true' && lv.normal === 'false' && lv.level === 'easy', `「やさしい」を押すと、そこだけ選ばれる (${lv.level})`);
+    await page.locator('[data-level="normal"]').tap();
+    await sleep(100);
+    // せってい
+    await page.locator('#btnSettings').tap();
     await sleep(300);
-    ok(await page.evaluate(() => document.getElementById('menuSheet').hidden), '札の外をタップすると閉じる');
+    const st = await page.evaluate(() => { const b = document.getElementById('btnSound').getBoundingClientRect(); return { shown: !document.getElementById('settings').hidden, sound: { l: b.left, r: b.right, t: b.top, b: b.bottom } }; });
+    ok(st.shown && st.sound.l >= 0 && st.sound.r <= W && st.sound.t >= SAFE_TOP && st.sound.b <= H - SAFE_BOTTOM, '「せってい」が開き、おとの切りかえが画面の中に出る');
+    await page.locator('#btnSettingsClose').tap();
+    await sleep(200);
+    // あそびかた
+    await page.locator('#btnHowMenu').tap();
+    await sleep(200);
+    ok(await page.evaluate(() => !document.getElementById('howto').hidden), 'メニューの「あそびかた」で説明が開く');
+    await page.locator('#btnHowClose').tap();
+    await sleep(200);
+    await page.locator('#btnMenuBack').tap();
+    await sleep(300);
+    ok(await page.evaluate(() => document.getElementById('menuSheet').hidden), '「もどる」でメニューを閉じる');
     await page.locator('#btnStart').tap();
     await sleep(300);
 
@@ -490,10 +510,15 @@ async function run() {
 
     // ------------------------------------------------ 音
     section('音');
+    await page.locator('#btnStart').tap();
+    await sleep(250);
+    await page.locator('#btnSettings').tap();
+    await sleep(250);
     await page.locator('#btnSound').tap();
     await sleep(100);
     await page.locator('#btnSound').tap();
     await sleep(100);
+    await page.locator('#btnSettingsClose').tap();
     const audio = await page.evaluate(async () => {
       window.Sound.unlock();
       await new Promise((r) => setTimeout(r, 200));

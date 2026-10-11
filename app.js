@@ -22,7 +22,7 @@
   const P = window.Physics;
   const R = window.Render;
   const SND = window.Sound;
-  const VERSION = 'v2';
+  const VERSION = 'v3';
 
   const $ = function (id) { return document.getElementById(id); };
   const els = {
@@ -38,7 +38,7 @@
     resultBadge: $('resultBadge'),
     pause: $('pause'), howto: $('howto'),
     bestTower: $('bestTower'), vsRecord: $('vsRecord'), ver: $('ver'),
-    menuSheet: $('menuSheet'), cpuLevels: $('cpuLevels'), cpuPicker: $('cpuPicker'), chipEasy: null
+    menuSheet: $('menuSheet'), settings: $('settings'), cpuLevels: $('cpuLevels'), cpuPicker: $('cpuPicker'), chipEasy: null
   };
 
   // ---------------------------------------------------------------- 状態
@@ -1073,7 +1073,10 @@
       b.addEventListener('click', function () { S.level = b.dataset.level; SND.tick(); refreshTitle(); });
     });
     $('btnStart').addEventListener('click', function () { SND.unlock(); SND.tick(); show(els.menuSheet, true); });
-    els.menuSheet.addEventListener('click', function (e) { if (e.target === els.menuSheet) show(els.menuSheet, false); });
+    $('btnMenuBack').addEventListener('click', function () { show(els.menuSheet, false); SND.tick(); });
+    $('btnHowMenu').addEventListener('click', function () { show(els.howto, true); SND.tick(); });
+    $('btnSettings').addEventListener('click', function () { refreshTitle(); show(els.settings, true); SND.tick(); });
+    $('btnSettingsClose').addEventListener('click', function () { show(els.settings, false); });
     $('btnCpu').addEventListener('click', function () { SND.unlock(); startVersus('cpu', S.level); });
     $('btnTwo').addEventListener('click', function () { SND.unlock(); startVersus('two', S.level); });
     $('btnTower').addEventListener('click', function () { SND.unlock(); startTower(); });

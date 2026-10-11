@@ -57,6 +57,7 @@ three.min.js              three.js 0.149.0 (そのまま。書き換えない)
 rapier.js                 Rapier 0.21.0 (wasm 同梱の cjs を <script> と node 両方で読めるよう くるんだだけ)
 build-single.js           全部を 1 枚の HTML にまとめる。`--artifact` を付けると Artifact 用 (外側の html/head/body を外す)。4.8MB
 title.jpg                 タイトルの絵 (852x1846 を canvas から JPEG 0.92 で焼き直し 318KB)。絵の「はじめる」の上に見えない押しボタン `.start-hit` を重ねる
+menu.jpg                  モード選びの絵 (941x1672・368KB)。画面は 0.5 倍で置き (`.menu-art`、上下に余る所はふちの色でうめる)、ボタンは絵の画素座標で `.hit` を重ねる。むずかしさ 3 つだけは絵の上から描きなおして選択を見せる
 icon.svg / apple-touch-icon.png   アイコン (iOS は SVG を使えないので PNG も)
 ```
 

@@ -68,36 +68,25 @@
   <section id="title">
     <button type="button" id="btnStart" class="start-hit" aria-label="はじめる"></button>
 
+    <!-- モード選び: 絵 (menu.jpg) の上に、押せる所だけ重ねる。座標は絵の画素 (941x1672)。表示は 0.5 倍 -->
     <div id="menuSheet" hidden>
-      <div class="menu">
-        <div class="card">
-          <button type="button" id="btnCpu" class="btn btn-primary big">
-            <span class="ttl">CPUと たいせん</span>
-            <span class="sub">くずした方の まけ</span>
-          </button>
-          <div id="cpuLevels" class="chips" role="group" aria-label="CPUの強さ">
-            <button type="button" class="chip" data-level="easy" aria-pressed="false">やさしい</button>
-            <button type="button" class="chip" data-level="normal" aria-pressed="true">ふつう</button>
-            <button type="button" class="chip" data-level="hard" aria-pressed="false">つよい</button>
-          </div>
-        </div>
-        <button type="button" id="btnTwo" class="btn btn-wood big">
-          <span class="ttl">ふたりで たいせん</span>
-          <span class="sub">1台を かわりばんこ</span>
-        </button>
-        <button type="button" id="btnTower" class="btn btn-wood big">
-          <span class="ttl">ハイタワー</span>
-          <span class="sub">どこまで 高くつめる？ ベスト <b id="bestTower">—</b></span>
-        </button>
+      <div class="menu-art">
+        <button type="button" id="btnCpu" class="hit" style="--x:80;--y:625;--w:782;--h:207" aria-label="CPUとたいせん"></button>
+        <button type="button" class="hit chipbtn" data-level="easy" aria-pressed="false" style="--x:120;--y:862;--w:229;--h:76">やさしい</button>
+        <button type="button" class="hit chipbtn" data-level="normal" aria-pressed="true" style="--x:356;--y:862;--w:229;--h:76">ふつう</button>
+        <button type="button" class="hit chipbtn" data-level="hard" aria-pressed="false" style="--x:593;--y:862;--w:229;--h:76">つよい</button>
+        <button type="button" id="btnTwo" class="hit" style="--x:88;--y:995;--w:764;--h:212" aria-label="ふたりでたいせん"></button>
+        <button type="button" id="btnTower" class="hit" style="--x:88;--y:1243;--w:764;--h:211" aria-label="ハイタワー"></button>
+        <button type="button" id="btnHowMenu" class="hit" style="--x:170;--y:1503;--w:288;--h:87" aria-label="あそびかた"></button>
+        <button type="button" id="btnSettings" class="hit" style="--x:483;--y:1503;--w:287;--h:87" aria-label="せってい"></button>
       </div>
+      <button type="button" id="btnMenuBack" class="round" aria-label="もどる">
+        <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
 
     <div class="foot">
       <button type="button" id="btnHow" class="link">あそびかた</button>
-      <span class="dot">・</span>
-      <span class="rec">せんせき <b id="vsRecord">—</b></span>
-      <span class="dot">・</span>
-      <button type="button" id="btnSound" class="link" aria-pressed="true">おと：あり</button>
       <span id="ver" class="ver"></span>
     </div>
   </section>
@@ -125,6 +114,19 @@
         <button type="button" id="btnRestart" class="btn btn-wood"><span class="label">はじめからやりなおす</span></button>
         <button type="button" id="btnQuit" class="btn btn-wood"><span class="label">メニューへ</span></button>
       </div>
+    </div>
+  </section>
+
+  <!-- せってい -->
+  <section id="settings" hidden>
+    <div class="sheet">
+      <div class="big-text">せってい</div>
+      <div id="resultLines2">
+        <div class="line"><span>おと</span><button type="button" id="btnSound" class="link" aria-pressed="true">おと：あり</button></div>
+        <div class="line"><span>たいせん</span><strong id="vsRecord">—</strong></div>
+        <div class="line"><span>ハイタワー ベスト</span><strong id="bestTower">—</strong></div>
+      </div>
+      <div class="btns"><button type="button" id="btnSettingsClose" class="btn btn-primary"><span class="label">とじる</span></button></div>
     </div>
   </section>
 
