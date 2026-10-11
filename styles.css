@@ -54,6 +54,7 @@ body {
 }
 
 #view {
+  background: #1a1018 url("./bg.jpg") center / cover no-repeat;
   position: absolute;
   inset: 0;
   width: 100%;
