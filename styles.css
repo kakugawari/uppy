@@ -602,3 +602,36 @@ body {
 #app[data-alt="1"] #toast { top: calc(var(--st) + 66px); }
 
 .btn:disabled { opacity: .4; filter: grayscale(.4); pointer-events: none; }
+
+/* ブロックの すがた えらび */
+#themeSheet {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  padding: calc(var(--st) + 20px) 18px calc(var(--sb) + 20px);
+  background: rgba(8, 10, 24, 0.5);
+  z-index: 31;
+  animation: fadeIn .25s ease both;
+}
+#themeGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 2px 0 18px; }
+.theme-tile {
+  font: inherit; color: var(--ink);
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  padding: 12px 8px 10px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, .06);
+  border: 2px solid rgba(255, 255, 255, .12);
+  cursor: pointer; touch-action: manipulation;
+}
+.theme-tile .sw {
+  position: relative; display: block; width: 104px; height: 34px; border-radius: 6px;
+  background: var(--face);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, .35), inset 0 -4px 6px rgba(0, 0, 0, .3), 0 3px 6px rgba(0, 0, 0, .45);
+}
+.theme-tile .sw::after {          /* 木口 (右はし) */
+  content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: 17px; border-radius: 0 6px 6px 0;
+  background: var(--end);
+  box-shadow: inset 2px 0 3px rgba(0, 0, 0, .3);
+}
+.theme-tile b { font-size: 15px; letter-spacing: .06em; }
+.theme-tile small { font-size: 11px; color: var(--ink-dim); margin-top: -4px; }
+.theme-tile[aria-pressed="true"] { border-color: #ffd45a; background: rgba(255, 212, 90, .14); box-shadow: 0 0 14px rgba(255, 212, 90, .45); }
+.theme-tile:active { transform: scale(.97); }

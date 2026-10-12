@@ -113,6 +113,59 @@
     ctx.putImageData(img, 0, 0);
   }
 
+  /** 木目のない塗りもの (黒檀・白木・漆・真鍮)。base のうえに、すじ・つや・粒を重ねる。 */
+  function drawPlain(ctx, w, h, base, seed, opt) {
+    const rnd = rng32(seed);
+    const o = opt || {};
+    ctx.fillStyle = 'rgb(' + base.join(',') + ')';
+    ctx.fillRect(0, 0, w, h);
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(255,255,255,' + (o.gloss || 0) + ')');
+    g.addColorStop(0.55, 'rgba(255,255,255,0)');
+    g.addColorStop(1, 'rgba(0,0,0,' + (o.shade || 0) + ')');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    const lc = o.line || [0, 0, 0];
+    const n = o.lines == null ? 40 : o.lines;
+    for (let i = 0; i < n; i++) {
+      const y0 = rnd() * h, amp = 0.6 + rnd() * 2.2, fq = 0.004 + rnd() * 0.01, ph = rnd() * 6.28;
+      ctx.strokeStyle = 'rgba(' + lc.join(',') + ',' + ((o.lineA || 0.12) * (0.4 + rnd())) + ')';
+      ctx.lineWidth = 0.5 + rnd() * 1.3;
+      ctx.beginPath();
+      for (let x = 0; x <= w; x += 8) {
+        const y = y0 + Math.sin(x * fq + ph) * amp;
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+    if (o.flecks) {                       // 金の粉
+      for (let i = 0; i < o.flecks; i++) {
+        ctx.fillStyle = 'rgba(255,214,120,' + (0.25 + rnd() * 0.5) + ')';
+        ctx.beginPath(); ctx.arc(rnd() * w, rnd() * h, 0.5 + rnd() * 1.1, 0, 6.28); ctx.fill();
+      }
+    }
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const nn = (rnd() - 0.5) * (o.noise == null ? 8 : o.noise); d[i] += nn; d[i + 1] += nn; d[i + 2] += nn; }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  /** 塗りものの木口 (年輪の線を ほんのり) */
+  function drawEndPlain(ctx, w, h, base, seed, line) {
+    const rnd = rng32(seed);
+    ctx.fillStyle = 'rgb(' + base.join(',') + ')';
+    ctx.fillRect(0, 0, w, h);
+    const cx = w * (0.2 + rnd() * 0.6), cy = h * (-0.4 + rnd() * 1.8);
+    for (let r = 4; r < w * 2.2; r += 3 + rnd() * 3) {
+      ctx.strokeStyle = 'rgba(' + line.join(',') + ',' + (0.1 + rnd() * 0.18) + ')';
+      ctx.lineWidth = 0.7 + rnd() * 1.0;
+      ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    }
+    const img = ctx.getImageData(0, 0, w, h);
+    const d = img.data;
+    for (let i = 0; i < d.length; i += 4) { const nn = (rnd() - 0.5) * 10; d[i] += nn; d[i + 1] += nn; d[i + 2] += nn; }
+    ctx.putImageData(img, 0, 0);
+  }
+
   function makeCanvasTexture(w, h, draw, repeat) {
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
@@ -264,19 +317,90 @@
     }
 
     // ------------------------------------------------ ブロック
-    const woodMats = WOODS.map(function (base, i) {
-      const grain = makeCanvasTexture(512, 160, function (ctx, w, h) { drawGrain(ctx, w, h, base, 100 + i * 13); }, true);
-      const grain2 = makeCanvasTexture(512, 160, function (ctx, w, h) { drawGrain(ctx, w, h, base, 400 + i * 17); }, true);
-      const end = makeCanvasTexture(128, 128, function (ctx, w, h) { drawEnd(ctx, w, h, base, 700 + i); });
-      const mk = function (map) {
-        return new THREE.MeshStandardMaterial({ map: map, roughness: 0.5, metalness: 0, bumpMap: map, bumpScale: 0.1, envMapIntensity: 0.85, color: 0xffc78a });
-      };
-      return { end: mk(end), a: mk(grain), b: mk(grain2) };
-    });
+    /**
+     * ブロックの素材 (テーマ)。6 組の材質を作り、ブロックごとに 1 組を割りあてる (木の誤差のような ばらつき)。
+     * glow: つかんだ光の重ね方。白いブロックは 足し算だと白く飛ぶので、ふつうの重ね (normal) で色を乗せる。
+     */
+    const THEME_DEFS = {
+      brown: { tint: 0x6a4a36, glow: { mode: 'add', k: 0.5 } },
+      light: { tint: 0xffc78a, glow: { mode: 'add', k: 0.5 } },
+      black: { glow: { mode: 'add', k: 1.5 } },
+      white: { glow: { mode: 'normal', k: 0.8, opacity: 1.7, mul: [1, 0.42, 0.08] } },
+      wa:    { glow: { mode: 'add', k: 0.6 } },
+      yo:    { glow: { mode: 'add', k: 0.6 } }
+    };
+    const setCache = {};
 
-    /** ブロックの色あい (木目の絵に掛けるので、暗い色ほど茶色く濃くなる) */
-    function setBlockTint(hex) {
-      woodMats.forEach(function (m) { [m.end, m.a, m.b].forEach(function (x) { x.color.setHex(hex); }); });
+    function buildSets(id) {
+      const T = function (w, h, draw, rep) { return makeCanvasTexture(w, h, draw, rep); };
+      const M = function (map, p) {
+        return new THREE.MeshStandardMaterial({ map: map, roughness: p.rough, metalness: p.metal || 0, bumpMap: p.bump ? map : null, bumpScale: 0.1,
+          envMapIntensity: p.env, color: p.color == null ? 0xffffff : p.color });
+      };
+      const sets = [];
+      for (let i = 0; i < 6; i++) {
+        let sa, sb, en, p;
+        if (id === 'brown' || id === 'light') {
+          const base = WOODS[i];
+          p = { rough: 0.5, env: 0.85, bump: true, color: THEME_DEFS[id].tint };
+          sa = T(512, 160, function (c, w, h) { drawGrain(c, w, h, base, 100 + i * 13); }, true);
+          sb = T(512, 160, function (c, w, h) { drawGrain(c, w, h, base, 400 + i * 17); }, true);
+          en = T(128, 128, function (c, w, h) { drawEnd(c, w, h, base, 700 + i); });
+          sets.push({ end: M(en, p), a: M(sa, p), b: M(sb, p) });
+        } else if (id === 'black') {                    // 黒檀: つやのある黒に、細い茶のすじ
+          const base = [26 + i * 2, 22 + i, 22 + i];
+          p = { rough: 0.28, env: 1.25, bump: false };
+          const o = { line: [138, 112, 92], lineA: 0.2, gloss: 0.1, shade: 0.3, lines: 46, noise: 6 };
+          sa = T(512, 160, function (c, w, h) { drawPlain(c, w, h, base, 200 + i, o); }, true);
+          sb = T(512, 160, function (c, w, h) { drawPlain(c, w, h, base, 260 + i, o); }, true);
+          en = T(128, 128, function (c, w, h) { drawEndPlain(c, w, h, [42, 35, 32], 300 + i, [150, 124, 100]); });
+          sets.push({ end: M(en, p), a: M(sa, p), b: M(sb, p) });
+        } else if (id === 'white') {                     // 白木: やわらかい白に、うすい灰のすじ
+          const base = [238 - i, 234 - i, 224 - i * 2];
+          p = { rough: 0.5, env: 0.5, bump: false };
+          const o = { line: [160, 148, 128], lineA: 0.22, gloss: 0.05, shade: 0.1, lines: 40, noise: 7 };
+          sa = T(512, 160, function (c, w, h) { drawPlain(c, w, h, base, 500 + i, o); }, true);
+          sb = T(512, 160, function (c, w, h) { drawPlain(c, w, h, base, 560 + i, o); }, true);
+          en = T(128, 128, function (c, w, h) { drawEndPlain(c, w, h, [232, 224, 206], 600 + i, [150, 132, 104]); });
+          sets.push({ end: M(en, p), a: M(sa, p), b: M(sb, p) });
+        } else if (id === 'wa') {                        // 和風: 朱と漆黒の漆塗り。木口だけ 桧の白木
+          const red = i < 3;
+          const base = red ? [186 + i * 4, 38 + i * 2, 30] : [24 + i, 20, 22];
+          p = { rough: 0.2, env: 1.3, bump: false };
+          const o = { line: red ? [90, 14, 10] : [120, 100, 90], lineA: 0.14, gloss: 0.16, shade: 0.3, lines: 22, flecks: red ? 0 : 36, noise: 4 };
+          sa = T(512, 160, function (c, w, h) { drawPlain(c, w, h, base, 800 + i, o); }, true);
+          sb = T(512, 160, function (c, w, h) { drawPlain(c, w, h, base, 860 + i, o); }, true);
+          en = T(128, 128, function (c, w, h) { drawEnd(c, w, h, [236, 214, 168], 900 + i); });
+          sets.push({ end: M(en, { rough: 0.6, env: 0.6 }), a: M(sa, p), b: M(sb, p) });
+        } else {                                         // 洋風: マホガニーの木地に 真鍮の木口
+          const base = [124 - i * 3, 50 - i, 34 - i];
+          p = { rough: 0.3, env: 1.1, bump: true };
+          sa = T(512, 160, function (c, w, h) { drawGrain(c, w, h, base, 1000 + i * 11, { dark: 0.5 }); }, true);
+          sb = T(512, 160, function (c, w, h) { drawGrain(c, w, h, base, 1100 + i * 7, { dark: 0.5 }); }, true);
+          en = T(128, 128, function (c, w, h) { drawPlain(c, w, h, [214, 172, 88], 1200 + i, { line: [120, 84, 30], lineA: 0.25, gloss: 0.3, shade: 0.25, lines: 18, noise: 8 }); });
+          sets.push({ end: M(en, { rough: 0.32, metal: 0.8, env: 1.4 }), a: M(sa, p), b: M(sb, p) });
+        }
+      }
+      return sets;
+    }
+
+    let themeId = 'brown';
+    function getSets(id) { return setCache[id] || (setCache[id] = buildSets(id)); }
+
+    function applyMaterials(rec) {
+      const set = getSets(themeId)[rec.idx];
+      // [px, nx, py, ny, pz, nz]
+      rec.mesh.material = [set.end, set.end, set.a, set.b, set.b, set.a];
+      const g = THEME_DEFS[themeId].glow;
+      rec.glow.material.blending = g.mode === 'add' ? THREE.AdditiveBlending : THREE.NormalBlending;
+      rec.glow.material.needsUpdate = true;
+    }
+
+    /** ブロックの素材を、いまある全部のブロックと これから作るブロックに適用する */
+    function setBlockTheme(id) {
+      if (!THEME_DEFS[id]) id = 'brown';
+      themeId = id;
+      meshes.forEach(applyMaterials);
     }
 
     const blockGroup = new THREE.Group();
@@ -288,10 +412,7 @@
     function addBlock(id, dim, tint) {
       const r = Math.min(0.06, dim.h * 0.12);
       const geo = roundedBox(dim.l, dim.h, dim.w, r);
-      const set = woodMats[Math.min(woodMats.length - 1, Math.floor(tint * woodMats.length))];
-      // [px, nx, py, ny, pz, nz]
-      const mats = [set.end, set.end, set.a, set.b, set.b, set.a];
-      const mesh = new THREE.Mesh(geo, mats);
+      const mesh = new THREE.Mesh(geo, getSets(themeId)[0].a);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       // 縁取り (ハイライト用)
@@ -306,8 +427,9 @@
       glow.renderOrder = 9;
       mesh.add(glow);
       blockGroup.add(mesh);
-      const rec = { mesh: mesh, edge: edge, glow: glow, flash: 0, flashColor: new THREE.Color(0xffffff), hold: 0 };
+      const rec = { mesh: mesh, edge: edge, glow: glow, idx: Math.min(5, Math.floor(tint * 6)), flash: 0, flashColor: new THREE.Color(0xffffff), hold: 0 };
       meshes.set(id, rec);
+      applyMaterials(rec);
       return rec;
     }
 
@@ -561,8 +683,10 @@
           rec.edge.material.color.copy(rec.flashColor);
           rec.edge.material.opacity = a;
           rec.edge.visible = true;
-          rec.glow.material.color.copy(rec.flashColor).multiplyScalar(0.5);
-          rec.glow.material.opacity = rec.hold ? 0.62 + Math.sin(clock * 9) * 0.18 : a * 0.7;
+          const gd = THEME_DEFS[themeId].glow;
+          rec.glow.material.color.copy(rec.flashColor).multiplyScalar(gd.k);
+          if (gd.mul) { const c = rec.glow.material.color; c.r *= gd.mul[0]; c.g *= gd.mul[1]; c.b *= gd.mul[2]; }
+          rec.glow.material.opacity = Math.min(1, (gd.opacity || 1) * (rec.hold ? 0.62 + Math.sin(clock * 9) * 0.18 : a * 0.7));
           rec.glow.visible = true;
         } else if (rec.edge.visible) {
           rec.edge.visible = false;
@@ -630,8 +754,8 @@
       setStage: setStage,
       addBlock: addBlock, removeBlock: removeBlock, clearBlocks: clearBlocks, setPose: setPose,
       hasBlock: function (id) { return meshes.has(id); },
-      setBlockTint: setBlockTint,
-      blockTint: function () { return woodMats[0].a.color.getHex(); },
+      setBlockTheme: setBlockTheme,
+      blockTheme: function () { return themeId; },
       flash: flash, flashOff: flashOff,
       glowOf: function (id) { const rec = meshes.get(id); return rec ? { visible: rec.glow.visible, opacity: rec.glow.material.opacity } : { visible: false, opacity: 0 }; },
       setGhosts: setGhosts, setDropLine: setDropLine,

@@ -203,15 +203,41 @@ async function run() {
     await sleep(300);
     const st = await page.evaluate(() => { const b = document.getElementById('btnSound').getBoundingClientRect(); return { shown: !document.getElementById('settings').hidden, sound: { l: b.left, r: b.right, t: b.top, b: b.bottom } }; });
     ok(st.shown && st.sound.l >= 0 && st.sound.r <= W && st.sound.t >= SAFE_TOP && st.sound.b <= H - SAFE_BOTTOM, '「せってい」が開き、おとの切りかえが画面の中に出る');
-    // ブロックの色: 標準は茶色。切りかえると 明るい木になり、再読み込みしても残る
-    const th0 = await page.evaluate(() => ({ tint: window.__app.view().blockTint(), label: document.getElementById('btnTheme').textContent }));
-    ok(th0.tint === 0x6a4a36 && th0.label === 'ちゃいろ', `ブロックの色は 標準で茶色 (${th0.label})`);
+    // ブロックの すがた: 標準は茶色。6 つから選べて、選んだものは再読み込みしても残る
+    const th0 = await page.evaluate(() => ({ id: window.__app.view().blockTheme(), label: document.getElementById('btnTheme').textContent }));
+    ok(th0.id === 'brown' && th0.label === 'ちゃいろ', `ブロックの すがたは 標準で茶色 (${th0.label})`);
     await page.locator('#btnTheme').tap();
-    await sleep(150);
-    const th1 = await page.evaluate(() => ({ tint: window.__app.view().blockTint(), label: document.getElementById('btnTheme').textContent, saved: localStorage.getItem('jenga.theme') }));
-    ok(th1.tint === 0xffc78a && th1.label === 'あかるい木' && th1.saved === 'light', `「ちゃいろ」を押すと「あかるい木」に切りかわる (${th1.label})`);
+    await sleep(250);
+    const grid = await page.evaluate(() => {
+      const r = (el) => { const b = el.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+      const tiles = Array.from(document.querySelectorAll('.theme-tile'));
+      return { n: tiles.length, ids: tiles.map((x) => x.dataset.theme), inside: tiles.every((x) => { const q = r(x); return q.l >= 0 && q.r <= 430 && q.t >= 59 && q.b <= 932 - 34; }), close: r(document.getElementById('btnThemeClose')), pressed: tiles.filter((x) => x.getAttribute('aria-pressed') === 'true').map((x) => x.dataset.theme) };
+    });
+    ok(grid.n === 6 && grid.ids.join() === 'brown,light,black,white,wa,yo' && grid.inside && grid.close.b <= H - SAFE_BOTTOM, `すがたの一覧が 6 つ出て、画面の中に収まる (${grid.ids.join(' ')})`);
+    ok(grid.pressed.join() === 'brown', '選んでいるものに印がつく');
+    await page.locator('.theme-tile[data-theme="black"]').tap();
+    await sleep(500);
+    const th1 = await page.evaluate(() => ({ id: window.__app.view().blockTheme(), label: document.getElementById('btnTheme').textContent, saved: localStorage.getItem('jenga.theme'), pressed: document.querySelector('.theme-tile[aria-pressed="true"]').dataset.theme }));
+    ok(th1.id === 'black' && th1.label === 'くろ' && th1.saved === 'black' && th1.pressed === 'black', `「くろ」を押すと すぐ切りかわり、保存される (${th1.label})`);
+    // どのすがたも 作れて、いまあるブロックにも新しいブロックにも 絵がつく
+    const built = await page.evaluate(() => {
+      const A = window.__app, v = A.view(); const out = [];
+      A.startVersus('cpu', 'normal', 3);
+      ['brown', 'light', 'black', 'white', 'wa', 'yo'].forEach((id) => { v.setBlockTheme(id); const m = v.scene.children.filter((o) => o.isGroup)[0]; out.push(id + ':' + v.blockTheme()); });
+      A.toTitle();
+      return out.join(',');
+    });
+    ok(/brown:brown,light:light,black:black,white:white,wa:wa,yo:yo/.test(built), `6 つの すがたが ぜんぶ作れる (${built})`);
+    await page.locator('#btnStart').tap();
+    await sleep(250);
+    await page.locator('#btnSettings').tap();
+    await sleep(250);
     await page.locator('#btnTheme').tap();
-    await sleep(100);
+    await sleep(250);
+    await page.locator('.theme-tile[data-theme="brown"]').tap();
+    await sleep(300);
+    await page.locator('#btnThemeClose').tap();
+    await sleep(200);
     await page.locator('#btnSettingsClose').tap();
     await sleep(200);
     // あそびかた
@@ -536,13 +562,13 @@ async function run() {
 
     // 記録は 再読み込みしても残る (ブロックの色も)
     await sleep(1000);
-    await page.evaluate(() => localStorage.setItem('jenga.theme', 'light'));
+    await page.evaluate(() => localStorage.setItem('jenga.theme', 'wa'));
     await page.reload();
     await page.waitForFunction(() => window.__app, null, { timeout: 30000 });
     await sleep(500);
     const best = await page.evaluate(() => document.getElementById('bestTower').textContent);
     ok(/2/.test(best), `ベストは 再読み込みしても残る (${best})`);
-    ok(await page.evaluate(() => window.__app.view().blockTint() === 0xffc78a), '選んだブロックの色 (あかるい木) は 再読み込みしても残る');
+    ok(await page.evaluate(() => window.__app.view().blockTheme() === 'wa'), '選んだブロックのすがた (和風) は 再読み込みしても残る');
     await page.evaluate(() => localStorage.setItem('jenga.theme', 'brown'));
 
     // ------------------------------------------------ ハイタワー こうたい

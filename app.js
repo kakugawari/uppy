@@ -22,7 +22,7 @@
   const P = window.Physics;
   const R = window.Render;
   const SND = window.Sound;
-  const VERSION = 'v6';
+  const VERSION = 'v7';
 
   const $ = function (id) { return document.getElementById(id); };
   const els = {
@@ -38,7 +38,7 @@
     resultBadge: $('resultBadge'),
     pause: $('pause'), howto: $('howto'),
     bestTower: $('bestTower'), vsRecord: $('vsRecord'), ver: $('ver'),
-    menuSheet: $('menuSheet'), settings: $('settings'), towerSheet: $('towerSheet'), cpuLevels: $('cpuLevels'), cpuPicker: $('cpuPicker'), chipEasy: null
+    menuSheet: $('menuSheet'), settings: $('settings'), towerSheet: $('towerSheet'), themeSheet: $('themeSheet'), cpuLevels: $('cpuLevels'), cpuPicker: $('cpuPicker'), chipEasy: null
   };
 
   // ---------------------------------------------------------------- 状態
@@ -79,20 +79,43 @@
     if (saved && typeof saved === 'object') Object.assign(S.stats, saved);
   } catch (e) { /* 読めなければ初期値のまま */ }
 
-  // ブロックの色: 茶色 (標準。つかんだ光が目立つ) / あかるい木 (背景との明るさの差が大きい)
-  const THEMES = { brown: 0x6a4a36, light: 0xffc78a };
+  // ブロックの すがた (素材)。標準は茶色。色は render.js の THEME_DEFS と同じ名前
+  const THEME_LIST = [
+    { id: 'brown', name: 'ちゃいろ', sub: '標準', face: 'linear-gradient(180deg,#9a6a46,#5e3c26)', end: '#8a5a3a' },
+    { id: 'light', name: 'あかるい木', sub: '見やすさ重視', face: 'linear-gradient(180deg,#f4cc92,#d49c58)', end: '#e8b878' },
+    { id: 'black', name: 'くろ', sub: '黒檀', face: 'linear-gradient(180deg,#4a4140,#14100f)', end: '#2c2422' },
+    { id: 'white', name: 'しろ', sub: '白木', face: 'linear-gradient(180deg,#fffcf6,#dcd4c4)', end: '#ece4d0' },
+    { id: 'wa', name: '和風', sub: '朱と漆黒の漆', face: 'linear-gradient(90deg,#d23a2a 0 50%,#1c1818 50% 100%)', end: '#ecd6a8' },
+    { id: 'yo', name: '洋風', sub: 'マホガニーと真鍮', face: 'linear-gradient(180deg,#8a3526,#4a1a12)', end: '#d8b058' }
+  ];
   let blockTheme = 'brown';
-  try { if (localStorage.getItem('jenga.theme') === 'light') blockTheme = 'light'; } catch (e) { /* 読めなければ標準 */ }
+  try { const s = localStorage.getItem('jenga.theme'); if (THEME_LIST.some(function (t) { return t.id === s; })) blockTheme = s; } catch (e) { /* 読めなければ標準 */ }
+  function themeName(id) { return THEME_LIST.filter(function (t) { return t.id === id; })[0].name; }
   function applyTheme() {
-    if (view) view.setBlockTint(THEMES[blockTheme]);
+    if (view) view.setBlockTheme(blockTheme);
     const b = document.getElementById('btnTheme');
-    if (b) { b.textContent = blockTheme === 'brown' ? 'ちゃいろ' : 'あかるい木'; b.setAttribute('aria-pressed', blockTheme === 'brown' ? 'true' : 'false'); }
+    if (b) b.textContent = themeName(blockTheme);
+    document.querySelectorAll('.theme-tile').forEach(function (t) { t.setAttribute('aria-pressed', t.dataset.theme === blockTheme ? 'true' : 'false'); });
   }
-  function toggleTheme() {
-    blockTheme = blockTheme === 'brown' ? 'light' : 'brown';
+  function chooseTheme(id) {
+    blockTheme = id;
     try { localStorage.setItem('jenga.theme', blockTheme); } catch (e) { /* 保存できなくてよい */ }
     applyTheme();
     SND.tick();
+  }
+  function buildThemeGrid() {
+    const grid = document.getElementById('themeGrid');
+    THEME_LIST.forEach(function (t) {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'theme-tile'; b.dataset.theme = t.id;
+      const sw = document.createElement('span'); sw.className = 'sw'; sw.style.setProperty('--face', t.face); sw.style.setProperty('--end', t.end);
+      const n = document.createElement('b'); n.textContent = t.name;
+      const s = document.createElement('small'); s.textContent = t.sub;
+      b.appendChild(sw); b.appendChild(n); b.appendChild(s);
+      b.addEventListener('click', function () { chooseTheme(t.id); });
+      grid.appendChild(b);
+    });
+    applyTheme();
   }
 
   let statsDirty = false;
@@ -290,6 +313,7 @@
   }
 
   function enterScreen() {
+    [els.themeSheet, els.settings, els.towerSheet, els.howto].forEach(function (s) { show(s, false); });
     show(els.title, false);
     show(els.result, false);
     show(els.pause, false);
@@ -1196,7 +1220,9 @@
     $('btnMenuBack').addEventListener('click', function () { show(els.menuSheet, false); SND.tick(); });
     $('btnHowMenu').addEventListener('click', function () { show(els.howto, true); SND.tick(); });
     $('btnSettings').addEventListener('click', function () { refreshTitle(); show(els.settings, true); SND.tick(); });
-    $('btnTheme').addEventListener('click', toggleTheme);
+    buildThemeGrid();
+    $('btnTheme').addEventListener('click', function () { show(els.themeSheet, true); SND.tick(); applyTheme(); });
+    $('btnThemeClose').addEventListener('click', function () { show(els.themeSheet, false); });
     $('btnSettingsClose').addEventListener('click', function () { show(els.settings, false); });
     $('btnCpu').addEventListener('click', function () { SND.unlock(); startVersus('cpu', S.level); });
     $('btnTwo').addEventListener('click', function () { SND.unlock(); startVersus('two', S.level); });
