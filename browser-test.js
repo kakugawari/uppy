@@ -403,7 +403,7 @@ async function run() {
     }
     s = await state(page);
     ok(back && s.turns === 2, `CPU が 1 本ぬいて のせ、手番が戻る (${s.phase}, 手番 ${s.turns})`);
-    ok(['think', 'probing', 'pulling', 'carry', 'drop'].every((x) => seenSteps.has(x)), `CPU は 考える→ためす→ぬく→のせる を通る (${Array.from(seenSteps).join(',')})`);
+    ok(['think', 'pulling', 'carry', 'drop'].every((x) => seenSteps.has(x)) && !seenSteps.has('probing') && !seenSteps.has('probeBack'), `CPU は 考える→ぬく→のせる を通り、出し入れ (ためし引き) は見せない (${Array.from(seenSteps).join(',')})`);
     ok(s.removed === 2, `ぬいた数が 2 (${s.removed})`);
 
     // ------------------------------------------------ カメラ

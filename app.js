@@ -22,7 +22,7 @@
   const P = window.Physics;
   const R = window.Render;
   const SND = window.Sound;
-  const VERSION = 'v7';
+  const VERSION = 'v8';
 
   const $ = function (id) { return document.getElementById(id); };
   const els = {
@@ -776,7 +776,7 @@
     k.t += dt;
     switch (k.step) {
       case 'think':
-        if (k.t > 0.9) {
+        if (k.t > 0.5) {
           k.cands = C.rankCandidates(tower, Math.random, lvl.noise).slice(0, lvl.probe).map(function (c) { return c.id; });
           k.idx = 0; k.results = [];
           k.step = 'probeStart'; k.t = 0;
@@ -789,38 +789,37 @@
           k.step = 'pullStart'; k.t = 0;
           break;
         }
-        k.id = k.cands[k.idx];
-        const b = tower.byId.get(k.id);
-        const axis = C.layerAxis(b.layer) === 'z' ? 'z' : 'x';
-        const pose = sim.pose(k.id);
-        k.axis = axis;
-        k.c0 = axis === 'x' ? pose.x : pose.z;
-        k.dir = Math.random() < 0.5 ? 1 : -1;
-        view.flash(k.id, '#ffd166', 1, true);
-        sim.beginPull(k.id, axis);
-        sim.setPullTarget(k.id, k.c0 + k.dir * 0.6, 1.8);
-        k.peak = 0;
-        k.step = 'probing'; k.t = 0;
+        // ためし引きは画面に出さず、物理だけ先に進める (見えるのは本番の 1 回だけ)。
+        // 1 コマで全部やると止まるので、1 コマ 20 歩ずつに分ける
+        const h = sim.STEP * 1.0001;
+        if (!k.pr) {
+          k.id = k.cands[k.idx];
+          const b = tower.byId.get(k.id);
+          const axis = C.layerAxis(b.layer) === 'z' ? 'z' : 'x';
+          const pose = sim.pose(k.id);
+          k.axis = axis;
+          k.c0 = axis === 'x' ? pose.x : pose.z;
+          k.dir = Math.random() < 0.5 ? 1 : -1;
+          sim.beginPull(k.id, axis);
+          sim.setPullTarget(k.id, k.c0 + k.dir * 0.6, 1.8);
+          k.peak = 0;
+          k.pr = { n: 0 };
+        }
+        for (let i = 0; i < 20; i++) {
+          const n = k.pr.n++;
+          sim.step(h);
+          if (n < 68) {
+            k.peak = Math.max(k.peak, sim.maxSpeed(others(k.id)));
+            if (n === 67) { k.results.push({ id: k.id, peak: k.peak, dir: k.dir, axis: k.axis }); sim.setPullTarget(k.id, k.c0, 2.6); }
+          } else if (n === 68 + 58) {
+            sim.endPull(k.id);
+          } else if (n >= 68 + 58 + 12) {
+            k.pr = null; k.idx++;
+            break;
+          }
+        }
         break;
       }
-      case 'probing':
-        k.peak = Math.max(k.peak, sim.maxSpeed(others(k.id)));
-        SND.slide(0.15);
-        if (k.t > 0.75) {
-          k.results.push({ id: k.id, peak: k.peak, dir: k.dir, axis: k.axis });
-          sim.setPullTarget(k.id, k.c0, 2.6);
-          k.step = 'probeBack'; k.t = 0;
-        }
-        break;
-      case 'probeBack':
-        if (k.t > 0.65) {
-          sim.endPull(k.id);
-          view.flashOff(k.id);
-          SND.slide(0);
-          k.idx++;
-          k.step = 'probeStart'; k.t = 0;
-        }
-        break;
       case 'pullStart': {
         const r = k.pick;
         k.id = r.id; k.dir = r.dir; k.axis = r.axis;
