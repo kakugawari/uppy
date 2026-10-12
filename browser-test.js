@@ -203,6 +203,15 @@ async function run() {
     await sleep(300);
     const st = await page.evaluate(() => { const b = document.getElementById('btnSound').getBoundingClientRect(); return { shown: !document.getElementById('settings').hidden, sound: { l: b.left, r: b.right, t: b.top, b: b.bottom } }; });
     ok(st.shown && st.sound.l >= 0 && st.sound.r <= W && st.sound.t >= SAFE_TOP && st.sound.b <= H - SAFE_BOTTOM, '「せってい」が開き、おとの切りかえが画面の中に出る');
+    // ブロックの色: 標準は茶色。切りかえると 明るい木になり、再読み込みしても残る
+    const th0 = await page.evaluate(() => ({ tint: window.__app.view().blockTint(), label: document.getElementById('btnTheme').textContent }));
+    ok(th0.tint === 0x6a4a36 && th0.label === 'ちゃいろ', `ブロックの色は 標準で茶色 (${th0.label})`);
+    await page.locator('#btnTheme').tap();
+    await sleep(150);
+    const th1 = await page.evaluate(() => ({ tint: window.__app.view().blockTint(), label: document.getElementById('btnTheme').textContent, saved: localStorage.getItem('jenga.theme') }));
+    ok(th1.tint === 0xffc78a && th1.label === 'あかるい木' && th1.saved === 'light', `「ちゃいろ」を押すと「あかるい木」に切りかわる (${th1.label})`);
+    await page.locator('#btnTheme').tap();
+    await sleep(100);
     await page.locator('#btnSettingsClose').tap();
     await sleep(200);
     // あそびかた
@@ -525,13 +534,16 @@ async function run() {
     ok(tres.best === 2 && tres.badge, `ベスト更新で「NEW RECORD」(${tres.best})`);
     await page.screenshot({ path: path.join(OUT_DIR, 'tower-result.png') }).catch(() => {});
 
-    // 記録は 再読み込みしても残る
+    // 記録は 再読み込みしても残る (ブロックの色も)
     await sleep(1000);
+    await page.evaluate(() => localStorage.setItem('jenga.theme', 'light'));
     await page.reload();
     await page.waitForFunction(() => window.__app, null, { timeout: 30000 });
     await sleep(500);
     const best = await page.evaluate(() => document.getElementById('bestTower').textContent);
     ok(/2/.test(best), `ベストは 再読み込みしても残る (${best})`);
+    ok(await page.evaluate(() => window.__app.view().blockTint() === 0xffc78a), '選んだブロックの色 (あかるい木) は 再読み込みしても残る');
+    await page.evaluate(() => localStorage.setItem('jenga.theme', 'brown'));
 
     // ------------------------------------------------ ハイタワー こうたい
     section('ハイタワー: こうたい');

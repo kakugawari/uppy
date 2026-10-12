@@ -22,7 +22,7 @@
   const P = window.Physics;
   const R = window.Render;
   const SND = window.Sound;
-  const VERSION = 'v5';
+  const VERSION = 'v6';
 
   const $ = function (id) { return document.getElementById(id); };
   const els = {
@@ -78,6 +78,22 @@
     const saved = JSON.parse(localStorage.getItem('jenga.stats') || 'null');
     if (saved && typeof saved === 'object') Object.assign(S.stats, saved);
   } catch (e) { /* 読めなければ初期値のまま */ }
+
+  // ブロックの色: 茶色 (標準。つかんだ光が目立つ) / あかるい木 (背景との明るさの差が大きい)
+  const THEMES = { brown: 0x6a4a36, light: 0xffc78a };
+  let blockTheme = 'brown';
+  try { if (localStorage.getItem('jenga.theme') === 'light') blockTheme = 'light'; } catch (e) { /* 読めなければ標準 */ }
+  function applyTheme() {
+    if (view) view.setBlockTint(THEMES[blockTheme]);
+    const b = document.getElementById('btnTheme');
+    if (b) { b.textContent = blockTheme === 'brown' ? 'ちゃいろ' : 'あかるい木'; b.setAttribute('aria-pressed', blockTheme === 'brown' ? 'true' : 'false'); }
+  }
+  function toggleTheme() {
+    blockTheme = blockTheme === 'brown' ? 'light' : 'brown';
+    try { localStorage.setItem('jenga.theme', blockTheme); } catch (e) { /* 保存できなくてよい */ }
+    applyTheme();
+    SND.tick();
+  }
 
   let statsDirty = false;
   function saveStats() {
@@ -1180,6 +1196,7 @@
     $('btnMenuBack').addEventListener('click', function () { show(els.menuSheet, false); SND.tick(); });
     $('btnHowMenu').addEventListener('click', function () { show(els.howto, true); SND.tick(); });
     $('btnSettings').addEventListener('click', function () { refreshTitle(); show(els.settings, true); SND.tick(); });
+    $('btnTheme').addEventListener('click', toggleTheme);
     $('btnSettingsClose').addEventListener('click', function () { show(els.settings, false); });
     $('btnCpu').addEventListener('click', function () { SND.unlock(); startVersus('cpu', S.level); });
     $('btnTwo').addEventListener('click', function () { SND.unlock(); startVersus('two', S.level); });
@@ -1250,6 +1267,7 @@
       throw err;
     }
     resize();
+    applyTheme();
     RAPIER = window.RAPIER;
     try {
       await RAPIER.init();

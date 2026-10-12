@@ -274,6 +274,11 @@
       return { end: mk(end), a: mk(grain), b: mk(grain2) };
     });
 
+    /** ブロックの色あい (木目の絵に掛けるので、暗い色ほど茶色く濃くなる) */
+    function setBlockTint(hex) {
+      woodMats.forEach(function (m) { [m.end, m.a, m.b].forEach(function (x) { x.color.setHex(hex); }); });
+    }
+
     const blockGroup = new THREE.Group();
     scene.add(blockGroup);
     const meshes = new Map();            // id -> { mesh, edge }
@@ -556,7 +561,7 @@
           rec.edge.material.color.copy(rec.flashColor);
           rec.edge.material.opacity = a;
           rec.edge.visible = true;
-          rec.glow.material.color.copy(rec.flashColor).multiplyScalar(0.42);
+          rec.glow.material.color.copy(rec.flashColor).multiplyScalar(0.5);
           rec.glow.material.opacity = rec.hold ? 0.62 + Math.sin(clock * 9) * 0.18 : a * 0.7;
           rec.glow.visible = true;
         } else if (rec.edge.visible) {
@@ -625,6 +630,8 @@
       setStage: setStage,
       addBlock: addBlock, removeBlock: removeBlock, clearBlocks: clearBlocks, setPose: setPose,
       hasBlock: function (id) { return meshes.has(id); },
+      setBlockTint: setBlockTint,
+      blockTint: function () { return woodMats[0].a.color.getHex(); },
       flash: flash, flashOff: flashOff,
       glowOf: function (id) { const rec = meshes.get(id); return rec ? { visible: rec.glow.visible, opacity: rec.glow.material.opacity } : { visible: false, opacity: 0 }; },
       setGhosts: setGhosts, setDropLine: setDropLine,
