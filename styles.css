@@ -190,6 +190,26 @@ body {
 #result { z-index: 20; background: linear-gradient(180deg, #1e1719 0, #1e1719 var(--st), #401b0d 100%); }
 .menu-art.art-tower { background-image: url("./tower.jpg"); }
 .menu-art.art-result { background-image: url("./result.jpg"); height: calc(1671 * var(--u)); }
+/* けっかの絵は 5 種類 (data-art)。win / lose / solo / solo2 は渡された絵で、ラベルは絵のまま・右の値だけ消してある。
+   plain は 絵が無い組み合わせ (ふたりの対戦・ハイタワーのこうたい) 用で、札・題字・表を全部重ねる */
+#result[data-art="win"] .art-result { background-image: url("./result-win.jpg"); }
+#result[data-art="lose"] .art-result { background-image: url("./result-lose.jpg"); height: calc(1670 * var(--u)); }
+#result[data-art="solo"] .art-result { background-image: url("./result-solo.jpg"); height: calc(1670 * var(--u)); }
+#result[data-art="solo2"] .art-result { background-image: url("./result-solo2.jpg"); height: calc(1670 * var(--u)); }
+#result[data-art="win"] { --rt: 705; --rh: 364; --rw: 722; --vf: 36; --ay: 1130; --ah: 142; --ax: 84; --aw: 394; --mx: 508; --mw: 352; }
+#result[data-art="lose"] { --rt: 685; --rh: 355; --rw: 722; --vf: 36; --ay: 1090; --ah: 145; --ax: 85; --aw: 393; --mx: 508; --mw: 352; }
+#result[data-art="solo"], #result[data-art="solo2"] { --rt: 705; --rh: 367; --rw: 728; --vf: 28; --ay: 1125; --ah: 135; --ax: 85; --aw: 400; --mx: 510; --mw: 340; }
+#result[data-art="plain"] { --ay: 1130; --ah: 142; --ax: 84; --aw: 394; --mx: 508; --mw: 352; }
+#btnAgain { --x: var(--ax); --y: var(--ay); --w: var(--aw); --h: var(--ah); }
+#btnMenu { --x: var(--mx); --y: var(--ay); --w: var(--mw); --h: var(--ah); }
+#result:not([data-art="plain"]) .line .ico, #result:not([data-art="plain"]) .line .k { visibility: hidden; }
+#result:not([data-art="plain"]) #resultLines .line { border-top: 0; justify-content: flex-end; }
+#result:not([data-art="plain"]) #resultLines .line strong { font-size: calc(var(--vf) * var(--u)); color: #f6e7cd; }
+#result:not([data-art="plain"]) #resultLines { top: calc(var(--rt) * var(--u)); height: calc(var(--rh) * var(--u)); width: calc(var(--rw) * var(--u)); }
+#result:not([data-art="plain"]) #resultTitle, #result:not([data-art="plain"]) #resultBig, #result:not([data-art="plain"]) #resultBadge { display: none; }
+/* ひとり: 題字の数 (絵の数字を消してあるので重ねる) / 記録更新でないときは札の文字も消してある */
+#result[data-art="solo"] #resultBig, #result[data-art="solo2"] #resultBig { display: flex; left: calc(322 * var(--u)); top: calc(560 * var(--u)); width: calc(314 * var(--u)); height: calc(108 * var(--u)); }
+#result[data-art="solo2"] #resultTitle { display: flex; left: calc(298 * var(--u)); top: calc(388 * var(--u)); width: calc(342 * var(--u)); height: calc(50 * var(--u)); color: #ffe3a0; text-shadow: 0 1px 0 rgba(0, 0, 0, .5); }
 /* けっか: 札の文字・題字・表。絵の画素 (--u 倍) で置く */
 .r-plaque {
   position: absolute; left: calc(318 * var(--u)); top: calc(432 * var(--u)); width: calc(305 * var(--u)); height: calc(48 * var(--u));

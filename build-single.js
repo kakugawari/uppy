@@ -22,10 +22,11 @@ const bgJpg = fs.readFileSync(path.join(ROOT, 'bg.jpg')).toString('base64');
 const menuJpg = fs.readFileSync(path.join(ROOT, 'menu.jpg')).toString('base64');
 const towerJpg = fs.readFileSync(path.join(ROOT, 'tower.jpg')).toString('base64');
 const resultJpg = fs.readFileSync(path.join(ROOT, 'result.jpg')).toString('base64');
+const extraImgs = ['result-win.jpg', 'result-lose.jpg', 'result-solo.jpg', 'result-solo2.jpg'].map((f) => [f, fs.readFileSync(path.join(ROOT, f)).toString('base64')]);
 const iconsPng = fs.readFileSync(path.join(ROOT, 'result-icons.png')).toString('base64');
 const titleJpg = fs.readFileSync(path.join(ROOT, 'title.jpg')).toString('base64');
 html = html.replace(/<link rel="stylesheet" href="\.\/([^"]+)">/g, (_, f) =>
-  `<style>\n${read(f).replace('url("./title.jpg")', `url("data:image/jpeg;base64,${titleJpg}")`).replace('url("./bg.jpg")', `url("data:image/jpeg;base64,${bgJpg}")`).replace('url("./menu.jpg")', `url("data:image/jpeg;base64,${menuJpg}")`).replace('url("./tower.jpg")', `url("data:image/jpeg;base64,${towerJpg}")`).replace('url("./result.jpg")', `url("data:image/jpeg;base64,${resultJpg}")`).replace('url("./result-icons.png")', `url("data:image/png;base64,${iconsPng}")`)}\n</style>`);
+  `<style>\n${read(f).replace('url("./title.jpg")', `url("data:image/jpeg;base64,${titleJpg}")`).replace('url("./bg.jpg")', `url("data:image/jpeg;base64,${bgJpg}")`).replace('url("./menu.jpg")', `url("data:image/jpeg;base64,${menuJpg}")`).replace('url("./tower.jpg")', `url("data:image/jpeg;base64,${towerJpg}")`).replace('url("./result.jpg")', `url("data:image/jpeg;base64,${resultJpg}")`).replace(/url\("\.\/(result-(?:win|lose|solo2?)\.jpg)"\)/g, (_, f) => `url("data:image/jpeg;base64,${extraImgs.find((e) => e[0] === f)[1]}")`).replace('url("./result-icons.png")', `url("data:image/png;base64,${iconsPng}")`)}\n</style>`);
 
 // アイコン: apple-touch-icon は data URI に、SVG のアイコンも
 const png = fs.readFileSync(path.join(ROOT, 'apple-touch-icon.png')).toString('base64');

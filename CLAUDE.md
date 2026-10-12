@@ -62,7 +62,8 @@ bg.jpg                    プレイ中の背景の絵 (941x1671 から、画面�
 title.jpg                 タイトルの絵 (852x1846 を canvas から JPEG 0.92 で焼き直し 318KB)。絵の「はじめる」の上に見えない押しボタン `.start-hit` を重ねる
 menu.jpg                  モード選びの絵 (941x1672・368KB)。画面は 0.5 倍で置き (`.menu-art`、上下に余る所はふちの色でうめる)、ボタンは絵の画素座標で `.hit` を重ねる。むずかしさ 3 つだけは絵の上から描きなおして選択を見せる
 tower.jpg                 ハイタワーの遊び方えらびの絵 (941x1672)。menu.jpg と同じ作り (`.menu-art` + `.hit`)。座標は絵の画素
-result.jpg                けっかの絵 (941x1671)。**絵の中の文字 (札・題字・表の中身) は消してある** (左右・上下の色をならして埋めた)。`app.js` の `showResult` が札 `#resultTitle`・題字 `#resultBig`・表 `#resultLines` を絵の上に重ねる。題字の大きさは文字数で変える (`setResultTitle`)
+result-win.jpg / result-lose.jpg / result-solo.jpg / result-solo2.jpg   けっかの絵 (渡された絵)。**ラベルは絵のまま、勝ち負けや数で変わる値だけ消してある** (上下の同じ行の色でならして埋めた)。`#result` の `data-art` で選ぶ (CPU 戦の勝ち=win / 負け=lose、ハイタワーひとり=記録更新 solo / それ以外 solo2)。値は `#resultLines` の右はしに重ねる。solo / solo2 は題字の数 (`#resultBig`) も重ね、solo2 は絵の「NEW RECORD!」の文字を消して札に `けっか` と書く (**この文字は絵ではなく こちらで足した**)
+result.jpg                けっかの絵が無い組み合わせ用 (`data-art="plain"`: ふたりの対戦・ハイタワーのこうたい)。win の絵から**文字を全部消した**もの。`showResult` が札 `#resultTitle`・題字 `#resultBig`・表 `#resultLines` (アイコンつき) を重ねる。題字の大きさは文字数で変える (`setResultTitle`)。**近似であり、絵そのものではない**
 result-icons.png          けっかの表のアイコン 4 つ (ロボ・ブロック・時計・トロフィー。result.jpg から透明つきで切り出し 70px×4 の横並び)
 icon.png / apple-touch-icon.png   アイコン (title.jpg の看板+塔の上を正方形に切り出し。iOS は SVG を使えないので PNG)
 ```

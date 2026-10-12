@@ -22,7 +22,7 @@
   const P = window.Physics;
   const R = window.Render;
   const SND = window.Sound;
-  const VERSION = 'v9';
+  const VERSION = 'v10';
 
   const $ = function (id) { return document.getElementById(id); };
   const els = {
@@ -692,6 +692,7 @@
     show(els.hud, true);
     show(els.result, true);
     els.result.dataset.kind = S.mode;
+    els.result.dataset.art = 'plain';             // 絵が無い組み合わせは plain (下で絵のある所だけ差し替える)
     els.resultBadge.hidden = true;
     if (S.mode === 'vs') {
       const loser = S.collapsedBy;
@@ -708,6 +709,7 @@
         SND.win(); view.confetti(0, 6, 0);
       }
       setResultTitle('しょうぶあり', title);
+      if (S.opp === 'cpu') els.result.dataset.art = winner === 0 ? 'win' : 'lose';
       els.resultLines.innerHTML = '';
       addLine('くずした人', playerName(loser), 'robot');
       addLine('ぬいたブロック', S.removed + ' 本', 'block');
@@ -733,11 +735,14 @@
       const record = t.count > S.stats.bestTower;
       if (record && t.count > 0) { S.stats.bestTower = t.count; saveStats(); SND.win(); view.confetti(0, S.t.topY + 2, 0); els.resultBadge.hidden = false; }
       else SND.lose();
-      setResultTitle(rankName(t.count), t.count + ' だん');      // 札には ランク名
+      setResultTitle(record && t.count > 0 ? '' : 'けっか', t.count + ' だん');   // 札 (記録更新でないとき) と数
+      els.result.dataset.art = record && t.count > 0 ? 'solo' : 'solo2';
+      els.resultBig.style.setProperty('--fs', '88');
       els.resultLines.innerHTML = '';
       addLine('たかさ', C.heightCm(t.count).toFixed(1) + ' cm', 'block');
-      addLine('ぴったり', t.perfects + ' かい (れんぞく ' + t.bestCombo + ')', 'clock');
+      addLine('ぴったり', t.perfects + ' かい (さいこう ' + t.bestCombo + ' れんぞく)', 'clock');
       addLine('ベスト', S.stats.bestTower + ' だん', 'trophy');
+      addLine('ランク', rankName(t.count), 'robot');
     }
   }
 
