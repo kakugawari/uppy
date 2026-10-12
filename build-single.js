@@ -27,8 +27,8 @@ html = html.replace(/<link rel="stylesheet" href="\.\/([^"]+)">/g, (_, f) =>
 // アイコン: apple-touch-icon は data URI に、SVG のアイコンも
 const png = fs.readFileSync(path.join(ROOT, 'apple-touch-icon.png')).toString('base64');
 html = html.replace('<link rel="apple-touch-icon" href="./apple-touch-icon.png">', `<link rel="apple-touch-icon" href="data:image/png;base64,${png}">`);
-const svg = Buffer.from(read('icon.svg')).toString('base64');
-html = html.replace('<link rel="icon" href="./icon.svg" type="image/svg+xml">', `<link rel="icon" href="data:image/svg+xml;base64,${svg}" type="image/svg+xml">`);
+const svg = fs.readFileSync(path.join(ROOT, 'icon.png')).toString('base64');
+html = html.replace('<link rel="icon" href="./icon.png" type="image/png">', `<link rel="icon" href="data:image/png;base64,${svg}" type="image/png">`);
 
 // <script src> を埋め込みに。 "</script>" が中身にあると途中で閉じるので避ける
 html = html.replace(/<script src="\.\/([^"]+)"><\/script>/g, (_, f) => {
