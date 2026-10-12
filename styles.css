@@ -234,7 +234,7 @@ body {
 }
 #title:has(#menuSheet:not([hidden])) .foot { display: none; }
 #resultLines2 { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 18px; }
-#settings {
+#settings, #towerSheet {
   position: absolute;
   inset: 0;
   display: grid;
@@ -594,3 +594,11 @@ body {
 @keyframes ripple { 0% { transform: scale(.3); opacity: 0; } 30% { opacity: 1; } 100% { transform: scale(1.5); opacity: 0; } }
 
 #app[data-mode="vs"] #actions { bottom: calc(var(--sb) + 78px); }
+
+#towerSheet .small { margin: -4px 0 16px; font-size: 13.5px; line-height: 1.7; color: var(--ink-dim); }
+#towerSheet .btns .btn { min-height: 56px; }
+/* こうたいのハイタワー: 上の帯に名前と高さを出し、ひとり用の大きな数字は出さない */
+#app[data-alt="1"] #counter { display: none; }
+#app[data-alt="1"] #toast { top: calc(var(--st) + 66px); }
+
+.btn:disabled { opacity: .4; filter: grayscale(.4); pointer-events: none; }

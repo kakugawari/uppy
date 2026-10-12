@@ -22,7 +22,7 @@
   const P = window.Physics;
   const R = window.Render;
   const SND = window.Sound;
-  const VERSION = 'v4';
+  const VERSION = 'v5';
 
   const $ = function (id) { return document.getElementById(id); };
   const els = {
@@ -38,7 +38,7 @@
     resultBadge: $('resultBadge'),
     pause: $('pause'), howto: $('howto'),
     bestTower: $('bestTower'), vsRecord: $('vsRecord'), ver: $('ver'),
-    menuSheet: $('menuSheet'), settings: $('settings'), cpuLevels: $('cpuLevels'), cpuPicker: $('cpuPicker'), chipEasy: null
+    menuSheet: $('menuSheet'), settings: $('settings'), towerSheet: $('towerSheet'), cpuLevels: $('cpuLevels'), cpuPicker: $('cpuPicker'), chipEasy: null
   };
 
   // ---------------------------------------------------------------- 状態
@@ -160,8 +160,11 @@
     el.hidden = !on;
   }
 
+  function towerAlt() { return S.mode === 'tower' && !!S.twOpp; }
+  function cpuTurnTower() { return towerAlt() && S.twOpp === 'cpu' && S.player === 1; }
+
   function playerName(p) {
-    if (S.opp === 'cpu') return p === 0 ? 'あなた' : 'CPU';
+    if (S.opp === 'cpu' || S.twOpp === 'cpu') return p === 0 ? 'あなた' : 'CPU';
     return 'プレイヤー' + (p + 1);
   }
 
@@ -245,8 +248,12 @@
     beginTurn();
   }
 
-  function startTower() {
+  /** opp: 'cpu' / 'two' = こうたい (くずした方の まけ)、省くとひとりで高さに ちょうせん */
+  function startTower(opp) {
     S.screen = 'play'; S.mode = 'tower';
+    S.twOpp = opp || null;
+    S.opp = opp || 'solo';
+    S.player = 0; S.turns = 0; S.collapsedBy = -1;
     resetWorld();
     sim.setTable(-3);
     sim.setPedestal(2.4, 0, 3);
@@ -260,10 +267,10 @@
     S.wobble = 0;
     view.setCamera({ yaw: 0.2, pitch: 0.3, dist: 34 }, true);
     frameCamera(true);
-    spawnCrane();
     enterScreen();
+    spawnCrane();
     updateHud();
-    toast('タップで ブロックを おとそう！', 2600);
+    toast(opp ? '[[こうたい]]で つもう！ くずした 方の まけ' : 'タップで ブロックを おとそう！', 2600);
   }
 
   function enterScreen() {
@@ -273,7 +280,7 @@
     show(els.hud, true);
     show(els.camBtns, S.mode === 'vs');
     show(els.counter, S.mode === 'tower');
-    show(els.status, S.mode === 'vs');
+    show(els.status, S.mode === 'vs' || towerAlt());
     show(els.remain, S.mode === 'vs');
     hideHand();
     show(els.gauge, S.mode === 'vs');
@@ -281,6 +288,7 @@
     show(els.btnPlace, false);
     show(els.btnRotate, S.mode === 'tower');
     els.app.dataset.mode = S.mode;
+    els.app.dataset.alt = towerAlt() ? '1' : '0';
     els.app.dataset.screen = 'play';
     S.paused = false;
   }
@@ -348,6 +356,12 @@
       els.avatar.firstElementChild.setAttribute('href', S.player === 0 ? '#avShiba' : S.opp === 'cpu' ? '#avRobot' : '#avPanda');
       // のこり = まだ ぬける ブロックの数 (いちばん上の段は ぬけない)
       els.remainNum.textContent = String(tower.pullable().length);
+    } else if (towerAlt() && S.t) {
+      els.statusName.textContent = playerName(S.player) + (cpuTurnTower() ? ' が ねらい中…' : ' の ばん');
+      els.statusSub.textContent = S.t.count + ' だん';
+      els.btnRotate.disabled = cpuTurnTower();           // CPU の番は 回せない
+      els.status.dataset.p = String(S.player);
+      els.avatar.firstElementChild.setAttribute('href', S.player === 0 ? '#avShiba' : S.twOpp === 'cpu' ? '#avRobot' : '#avPanda');
     } else if (S.mode === 'tower' && S.t) {
       els.counterNum.textContent = String(S.t.count);
       els.counterCm.textContent = C.heightCm(S.t.count).toFixed(1) + ' cm';
@@ -595,7 +609,8 @@
 
   function collapse() {
     if (S.phase === 'over') return;
-    S.collapsedBy = S.player;
+    // こうたいのハイタワー: 次の人の番に入ってから崩れたら、積んだ前の人が くずした人
+    S.collapsedBy = towerAlt() && S.phase === 'swing' ? 1 - S.player : S.player;
     if (S.pull) releasePull();
     if (S.carry) { sim.setKinematic(S.carry.id, false); S.carry = null; }
     if (S.t && S.t.cur != null) {
@@ -651,6 +666,21 @@
       addLine('ぬいたブロック', S.removed + ' 本');
       addLine('てばん', S.turns + ' かい');
       if (S.opp === 'cpu') addLine('せんせき', S.stats.vsWins + ' しょう ' + S.stats.vsLosses + ' はい');
+      saveStats();
+    } else if (towerAlt()) {
+      const t = S.t;
+      const loser = S.collapsedBy, winner = 1 - loser;
+      if (S.twOpp === 'cpu') {
+        if (winner === 0) { S.stats.twWins = (S.stats.twWins || 0) + 1; SND.win(); view.confetti(0, S.t.topY + 2, 0); }
+        else { S.stats.twLosses = (S.stats.twLosses || 0) + 1; SND.lose(); }
+      } else { SND.win(); view.confetti(0, S.t.topY + 2, 0); }
+      els.resultTitle.textContent = 'ハイタワー こうたい';
+      els.resultBig.textContent = (S.twOpp === 'cpu' ? (winner === 0 ? 'あなたの かち！' : 'CPU の かち…') : playerName(winner) + ' の かち！');
+      els.resultLines.innerHTML = '';
+      addLine('くずした人', playerName(loser));
+      addLine('たかさ', t.count + ' だん (' + C.heightCm(t.count).toFixed(1) + ' cm)');
+      addLine('ぴったり', t.perfects + ' かい');
+      addLine('てばん', S.turns + ' かい');
       saveStats();
     } else {
       const t = S.t;
@@ -810,9 +840,20 @@
     t.state = 'swing';
     t.spawnT = 0;
     t.quiet = 0;
+    t.aim = cpuTurnTower() ? planCpuDrop() : null;
+    t.lastX = null;
     addBlockBoth({ id: id, dim: dim, pos: { x: C.craneSweep(t.clock, t.count), y: craneHoverY(), z: 0 }, yaw: t.yaw, layer: 0, tint: Math.random() });
     sim.setKinematic(id, true);
     S.phase = 'swing';
+  }
+
+  // CPU のねらい: 下のブロックの真上 (x) を、強さに応じた ずれ ぐあいで ねらう
+  const CPU_AIM_ERR = { easy: 1.0, normal: 0.55, hard: 0.18 };
+  function planCpuDrop() {
+    const t = S.t;
+    const target = t.prevX != null ? t.prevX : 0;
+    const err = (Math.random() * 2 - 1) * (CPU_AIM_ERR[S.level] != null ? CPU_AIM_ERR[S.level] : 0.55);
+    return { x: clamp(target + err, -2.6, 2.6), wait: 0.6 + Math.random() * 0.5 };
   }
 
   function updateSwing(dt) {
@@ -825,6 +866,11 @@
     // 落ちる先の目印
     const half = (Math.abs(Math.cos(t.yaw)) * C.L + Math.abs(Math.sin(t.yaw)) * C.W);
     view.setDropLine(true, x, 0, craneHoverY() - 0.3, t.topY, Math.max(C.W, half));
+    // CPU の番: ねらった位置を ゆれが 通りすぎる瞬間に おとす
+    if (t.aim && t.spawnT > t.aim.wait) {
+      if (t.lastX != null && (t.lastX - t.aim.x) * (x - t.aim.x) <= 0) dropCrane();
+    }
+    t.lastX = x;
   }
 
   function dropCrane() {
@@ -872,14 +918,20 @@
         t.combo = 0;
         if (t.count % 5 === 0) toast(t.count + ' だん！', 1000);
       }
+      if (towerAlt()) {
+        S.player = 1 - S.player;
+        S.turns++;
+        toast(playerName(S.player) + ' の ばん', 1100);
+      }
       updateHud();
       frameCamera(false);
       spawnCrane();
+      updateHud();
     }
   }
 
   function toggleRotate() {
-    if (!S.t || S.mode !== 'tower') return;
+    if (!S.t || S.mode !== 'tower' || cpuTurnTower()) return;
     S.t.yawGoal = S.t.yawGoal === 0 ? Math.PI / 2 : 0;
     SND.tick();
   }
@@ -929,7 +981,7 @@
     pointers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY, sx: ev.clientX, sy: ev.clientY, t: performance.now() });
 
     if (S.mode === 'tower') {
-      if (pointers.size === 1) { dropCrane(); }
+      if (pointers.size === 1 && !cpuTurnTower()) { dropCrane(); }
       return;
     }
     if (pointers.size === 2) {
@@ -1107,6 +1159,7 @@
   function refreshTitle() {
     els.bestTower.textContent = S.stats.bestTower > 0 ? S.stats.bestTower + ' だん' : '—';
     els.vsRecord.textContent = S.stats.vsPlayed > 0 ? S.stats.vsWins + 'しょう ' + S.stats.vsLosses + 'はい' : '—';
+    $('twRecord').textContent = (S.stats.twWins || 0) + (S.stats.twLosses || 0) > 0 ? (S.stats.twWins || 0) + 'しょう ' + (S.stats.twLosses || 0) + 'はい' : '—';
     document.querySelectorAll('[data-level]').forEach(function (b) {
       b.setAttribute('aria-pressed', b.dataset.level === S.level ? 'true' : 'false');
     });
@@ -1130,7 +1183,11 @@
     $('btnSettingsClose').addEventListener('click', function () { show(els.settings, false); });
     $('btnCpu').addEventListener('click', function () { SND.unlock(); startVersus('cpu', S.level); });
     $('btnTwo').addEventListener('click', function () { SND.unlock(); startVersus('two', S.level); });
-    $('btnTower').addEventListener('click', function () { SND.unlock(); startTower(); });
+    $('btnTower').addEventListener('click', function () { SND.unlock(); SND.tick(); show(els.towerSheet, true); });
+    $('btnTowerClose').addEventListener('click', function () { show(els.towerSheet, false); });
+    $('btnTowerCpu').addEventListener('click', function () { show(els.towerSheet, false); startTower('cpu'); });
+    $('btnTowerTwo').addEventListener('click', function () { show(els.towerSheet, false); startTower('two'); });
+    $('btnTowerSolo').addEventListener('click', function () { show(els.towerSheet, false); startTower(); });
     $('btnHow').addEventListener('click', function () { show(els.howto, true); SND.tick(); });
     $('btnHowClose').addEventListener('click', function () { show(els.howto, false); });
     $('btnPause').addEventListener('click', function () { setPaused(true); });
@@ -1167,7 +1224,7 @@
 
   function restart() {
     if (S.mode === 'vs') startVersus(S.opp, S.level);
-    else if (S.mode === 'tower') startTower();
+    else if (S.mode === 'tower') startTower(S.twOpp);
     S.resultShown = false;
   }
 
@@ -1218,6 +1275,7 @@
       meta: meta,
       startVersus: startVersus,
       startTower: startTower,
+      cpuTurnTower: cpuTurnTower,
       collapse: collapse,
       beginTurn: beginTurn,
       endTurn: endTurn,

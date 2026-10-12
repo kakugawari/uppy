@@ -178,6 +178,20 @@
     </div>
   </section>
 
+  <!-- ハイタワー: 遊び方えらび -->
+  <section id="towerSheet" hidden>
+    <div class="sheet">
+      <div class="big-text">ハイタワー</div>
+      <p class="small">ブロックを 1 本ずつ つむ。<b>くずした 方の まけ</b>（こうたい）か、ひとりで 高さに ちょうせん。</p>
+      <div class="btns col">
+        <button type="button" id="btnTowerCpu" class="btn btn-primary"><span class="label">CPUと こうたい</span></button>
+        <button type="button" id="btnTowerTwo" class="btn btn-wood"><span class="label">ふたりで こうたい</span></button>
+        <button type="button" id="btnTowerSolo" class="btn btn-wood"><span class="label">ひとりで たかさに ちょうせん</span></button>
+        <button type="button" id="btnTowerClose" class="btn btn-sub"><span class="label">もどる</span></button>
+      </div>
+    </div>
+  </section>
+
   <!-- せってい -->
   <section id="settings" hidden>
     <div class="sheet">
@@ -186,6 +200,7 @@
         <div class="line"><span>おと</span><button type="button" id="btnSound" class="link" aria-pressed="true">おと：あり</button></div>
         <div class="line"><span>たいせん</span><strong id="vsRecord">—</strong></div>
         <div class="line"><span>ハイタワー ベスト</span><strong id="bestTower">—</strong></div>
+        <div class="line"><span>ハイタワー こうたい</span><strong id="twRecord">—</strong></div>
       </div>
       <div class="btns"><button type="button" id="btnSettingsClose" class="btn btn-primary"><span class="label">とじる</span></button></div>
     </div>
@@ -205,6 +220,7 @@
       <h3>ハイタワー</h3>
       <ol>
         <li>ゆれている ブロックを <b>タップで おとして</b> 積みます。</li>
+        <li><b>こうたい</b>のときは、ひとり 1 本ずつ。<b>くずした人の まけ</b>です（CPU・ふたり）。</li>
         <li>「むき」で ブロックを 90度 まわせます。</li>
         <li>だいに おちたら おしまい。<b>ぴったり</b>で れんぞくすると いい音が鳴ります。</li>
       </ol>

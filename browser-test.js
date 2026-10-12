@@ -468,6 +468,13 @@ async function run() {
     await page.locator('#btnStart').tap();
     await sleep(250);
     await page.locator('#btnTower').tap();
+    await sleep(300);
+    const sheet = await page.evaluate(() => {
+      const r = (id) => { const b = document.getElementById(id).getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+      return { shown: !document.getElementById('towerSheet').hidden, btns: ['btnTowerCpu', 'btnTowerTwo', 'btnTowerSolo', 'btnTowerClose'].map(r) };
+    });
+    ok(sheet.shown && sheet.btns.every((b) => b.l >= 0 && b.r <= W && b.t >= SAFE_TOP && b.b <= H - SAFE_BOTTOM), 'ハイタワーを押すと 遊び方えらび (CPU / ふたり / ひとり) が出て、画面の中に収まる');
+    await page.locator('#btnTowerSolo').tap();
     await sleep(900);
     const tw0 = await page.evaluate(() => {
       const A = window.__app, S = A.state();
@@ -525,6 +532,48 @@ async function run() {
     await sleep(500);
     const best = await page.evaluate(() => document.getElementById('bestTower').textContent);
     ok(/2/.test(best), `ベストは 再読み込みしても残る (${best})`);
+
+    // ------------------------------------------------ ハイタワー こうたい
+    section('ハイタワー: こうたい');
+    const dropAt = async (cond) => {
+      await page.waitForFunction((c) => { const S = window.__app.state(); if (S.phase !== 'swing' || S.t.spawnT < 0.3) return false; const x = window.__app.pose(S.t.cur).x; return c === 'center' ? Math.abs(x) < 0.3 : Math.abs(x) > 2.6; }, cond, { timeout: 60000, polling: 'raf' });
+      await touch.tap(215, 520);
+    };
+    await page.evaluate(() => window.__app.toTitle());
+    await page.evaluate(() => window.__app.startTower('two'));
+    await sleep(500);
+    const alt0 = await page.evaluate(() => ({ name: document.getElementById('statusName').textContent, counterShown: getComputedStyle(document.getElementById('counter')).display, av: document.getElementById('avatar').firstElementChild.getAttribute('href'), sub: document.getElementById('statusSub').textContent }));
+    ok(/プレイヤー1/.test(alt0.name) && alt0.counterShown === 'none' && alt0.av === '#avShiba', `こうたい: プレイヤー1 の番で始まり、ひとり用の大きな数字は出ない (${alt0.name})`);
+    await dropAt('center');
+    await page.waitForFunction(() => window.__app.state().t.count >= 1 && window.__app.state().phase === 'swing', null, { timeout: 60000 });
+    const alt1 = await page.evaluate(() => ({ player: window.__app.state().player, name: document.getElementById('statusName').textContent, sub: document.getElementById('statusSub').textContent, av: document.getElementById('avatar').firstElementChild.getAttribute('href') }));
+    ok(alt1.player === 1 && /プレイヤー2/.test(alt1.name) && alt1.av === '#avPanda' && /1 だん/.test(alt1.sub), `1 本のせたら プレイヤー2 に交代する (${alt1.name} / ${alt1.sub})`);
+    await dropAt('edge');                                   // 台の外へ落として、くずす
+    ok(await waitPhase(page, 'over', 20000), 'プレイヤー2 が くずして 決着');
+    await page.waitForFunction(() => !document.getElementById('result').hidden, null, { timeout: 30000 });
+    const altRes = await page.evaluate(() => ({ big: document.getElementById('resultBig').textContent, lines: Array.from(document.querySelectorAll('#resultLines .line')).map((e) => e.textContent) }));
+    ok(/プレイヤー1 の かち/.test(altRes.big) && altRes.lines.some((l) => /くずした人.*プレイヤー2/.test(l)), `くずした プレイヤー2 の まけ → プレイヤー1 の かち (${altRes.big})`);
+    await page.locator('#btnAgain').tap();
+    await sleep(600);
+    ok(await page.evaluate(() => window.__app.state().mode === 'tower' && window.__app.state().twOpp === 'two' && window.__app.state().t.count === 0), '「もういちど」で 同じ こうたいの設定で始まり直す');
+
+    // CPU と こうたい: CPU の番は 自分で おとし、人の タップは効かない
+    await page.evaluate(() => window.__app.toTitle());
+    await page.evaluate(() => window.__app.startTower('cpu'));
+    await sleep(400);
+    await dropAt('center');
+    await page.waitForFunction(() => window.__app.state().t.count >= 1 && window.__app.state().phase === 'swing', null, { timeout: 60000 });
+    const cpu0 = await page.evaluate(() => ({ turn: window.__app.cpuTurnTower(), name: document.getElementById('statusName').textContent, av: document.getElementById('avatar').firstElementChild.getAttribute('href'), cur: window.__app.state().t.cur }));
+    ok(cpu0.turn && /CPU/.test(cpu0.name) && cpu0.av === '#avRobot', `1 本のせたら CPU の番 (${cpu0.name})`);
+    await touch.tap(215, 520);
+    await sleep(150);
+    const blocked = await page.evaluate((cur) => ({ same: window.__app.state().t.cur === cur, st: window.__app.state().t.state }), cpu0.cur);
+    ok(blocked.same && blocked.st === 'swing', `CPU の番に画面をタップしても おとせない (状態 ${blocked.st})`);
+    await page.waitForFunction(() => window.__app.state().t.count >= 2 || window.__app.state().phase === 'over', null, { timeout: 90000 });
+    const cpu1 = await page.evaluate(() => ({ count: window.__app.state().t.count, over: window.__app.state().phase === 'over' }));
+    ok(cpu1.count >= 2 || cpu1.over, `CPU は自分で おとして 手番を返す (${cpu1.count} だん${cpu1.over ? ' / くずれた' : ''})`);
+    await page.evaluate(() => window.__app.toTitle());
+    await sleep(300);
 
     // ------------------------------------------------ 音
     section('音');
