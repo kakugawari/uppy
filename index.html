@@ -153,16 +153,15 @@
   </section>
 
   <!-- けっか -->
-  <section id="result" hidden>
-    <div class="sheet">
+  <section id="result" class="artsheet" hidden>
+    <!-- 絵 (result.jpg) の上に、文字と押せる所を重ねる。絵の文字は消してある。座標は絵の画素 (941x1671) -->
+    <div class="menu-art art-result">
+      <div id="resultTitle" class="r-plaque"></div>
+      <div id="resultBig" class="r-big"></div>
       <div id="resultBadge" class="badge" hidden>NEW RECORD!</div>
-      <div id="resultTitle" class="eyebrow"></div>
-      <div id="resultBig" class="big-text"></div>
       <div id="resultLines"></div>
-      <div class="btns">
-        <button type="button" id="btnAgain" class="btn btn-primary"><span class="label">もういちど</span></button>
-        <button type="button" id="btnMenu" class="btn btn-wood"><span class="label">メニューへ</span></button>
-      </div>
+      <button type="button" id="btnAgain" class="hit" style="--x:84;--y:1130;--w:394;--h:142" aria-label="もういちど"></button>
+      <button type="button" id="btnMenu" class="hit" style="--x:508;--y:1130;--w:352;--h:142" aria-label="メニューへ"></button>
     </div>
   </section>
 
@@ -179,16 +178,13 @@
   </section>
 
   <!-- ハイタワー: 遊び方えらび -->
-  <section id="towerSheet" hidden>
-    <div class="sheet">
-      <div class="big-text">ハイタワー</div>
-      <p class="small">ブロックを 1 本ずつ つむ。<b>くずした 方の まけ</b>（こうたい）か、ひとりで 高さに ちょうせん。</p>
-      <div class="btns col">
-        <button type="button" id="btnTowerCpu" class="btn btn-primary"><span class="label">CPUと こうたい</span></button>
-        <button type="button" id="btnTowerTwo" class="btn btn-wood"><span class="label">ふたりで こうたい</span></button>
-        <button type="button" id="btnTowerSolo" class="btn btn-wood"><span class="label">ひとりで たかさに ちょうせん</span></button>
-        <button type="button" id="btnTowerClose" class="btn btn-sub"><span class="label">もどる</span></button>
-      </div>
+  <section id="towerSheet" class="artsheet" hidden>
+    <!-- 絵 (tower.jpg) の上に押せる所を重ねる。座標は絵の画素 (941x1672) -->
+    <div class="menu-art art-tower">
+      <button type="button" id="btnTowerCpu" class="hit" style="--x:130;--y:688;--w:683;--h:145" aria-label="CPUと こうたい"></button>
+      <button type="button" id="btnTowerTwo" class="hit" style="--x:130;--y:866;--w:685;--h:152" aria-label="ふたりで こうたい"></button>
+      <button type="button" id="btnTowerSolo" class="hit" style="--x:130;--y:1048;--w:685;--h:152" aria-label="ひとりで たかさに ちょうせん"></button>
+      <button type="button" id="btnTowerClose" class="hit" style="--x:222;--y:1240;--w:496;--h:92" aria-label="もどる"></button>
     </div>
   </section>
 

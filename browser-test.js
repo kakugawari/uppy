@@ -445,6 +445,13 @@ async function run() {
     });
     ok(/かち/.test(res.title) && res.lines >= 3, `勝ち負けと記録が出る (${res.title}, ${res.lines} 行)`);
     ok(res.bs.every((b) => b.l >= 0 && b.r <= W && b.b <= H - SAFE_BOTTOM && b.t >= SAFE_TOP), '結果のボタンが画面の中 (安全域の内側)');
+    const fit = await page.evaluate(() => {
+      const box = document.getElementById('resultLines').getBoundingClientRect();
+      const over = Array.from(document.querySelectorAll('#resultLines .line')).filter((l) => { const b = l.getBoundingClientRect(); return b.left < box.left - 1 || b.right > box.right + 1 || l.scrollWidth > l.clientWidth + 1; }).length;
+      const big = document.getElementById('resultBig'), pl = document.getElementById('resultTitle');
+      return { over, bigFit: big.scrollWidth <= big.clientWidth + 1, plFit: pl.scrollWidth <= pl.clientWidth + 1 };
+    });
+    ok(fit.over === 0 && fit.bigFit && fit.plFit, `結果の文字が絵の枠から はみ出さない (行 ${fit.over} / 題字 ${fit.bigFit} / 札 ${fit.plFit})`);
     await page.screenshot({ path: path.join(OUT_DIR, 'result.png') }).catch(() => {});
     await page.locator('#btnAgain').tap();
     await sleep(800);

@@ -176,7 +176,7 @@ body {
   50% { box-shadow: 0 0 22px 4px rgba(255, 214, 120, 0.55); }
 }
 
-#menuSheet {
+#menuSheet, .artsheet {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -184,6 +184,44 @@ body {
   background: linear-gradient(180deg, #201c28 0, #201c28 var(--st), #774120 100%);
   animation: fadeIn .22s ease both;
 }
+/* 絵だけで画面を満たす札 (ハイタワーの遊び方・けっか)。絵のふちの色でうめる */
+.artsheet[hidden] { display: none; }
+#towerSheet { z-index: 30; background: linear-gradient(180deg, #342b36 0, #342b36 var(--st), #582f16 100%); }
+#result { z-index: 20; background: linear-gradient(180deg, #1e1719 0, #1e1719 var(--st), #401b0d 100%); }
+.menu-art.art-tower { background-image: url("./tower.jpg"); }
+.menu-art.art-result { background-image: url("./result.jpg"); height: calc(1671 * var(--u)); }
+/* けっか: 札の文字・題字・表。絵の画素 (--u 倍) で置く */
+.r-plaque {
+  position: absolute; left: calc(318 * var(--u)); top: calc(432 * var(--u)); width: calc(305 * var(--u)); height: calc(48 * var(--u));
+  display: flex; align-items: center; justify-content: center; white-space: nowrap;
+  font-size: calc(var(--pf, 32) * var(--u)); font-weight: 900; letter-spacing: .04em; color: #4d2c0e;
+  text-shadow: 0 1px 0 rgba(255, 238, 190, .55);
+}
+.r-big {
+  position: absolute; left: calc(130 * var(--u)); top: calc(506 * var(--u)); width: calc(682 * var(--u)); height: calc(142 * var(--u));
+  display: flex; align-items: center; justify-content: center; white-space: nowrap;
+  font-size: calc(var(--fs, 104) * var(--u)); font-weight: 900; letter-spacing: .02em;
+  background: linear-gradient(180deg, #fff7cf 0%, #ffd96e 46%, #e5992f 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(1px 0 0 #7a4210) drop-shadow(-1px 0 0 #7a4210) drop-shadow(0 1px 0 #7a4210) drop-shadow(0 3px 0 #5a2f0a) drop-shadow(0 0 10px rgba(255, 190, 80, .55));
+}
+#resultBadge { left: calc(735 * var(--u)); top: calc(300 * var(--u)); transform: translateX(-50%) rotate(8deg); white-space: nowrap; }
+#resultLines {
+  position: absolute; left: calc(112 * var(--u)); top: calc(698 * var(--u)); width: calc(722 * var(--u)); height: calc(376 * var(--u));
+  display: flex; flex-direction: column;
+}
+#resultLines .line {
+  flex: 1; align-items: center; gap: calc(20 * var(--u)); padding: 0 calc(22 * var(--u));
+  border-bottom: 0; border-top: 1px solid rgba(255, 196, 110, .38);
+  font-size: calc(30 * var(--u)); color: #f3dcb8;
+}
+#resultLines .line:first-child { border-top: 0; }
+#resultLines .line .ico {
+  flex: none; width: calc(62 * var(--u)); height: calc(62 * var(--u));
+  background: url("./result-icons.png") calc(var(--i) * -62 * var(--u)) 0 / calc(248 * var(--u)) calc(62 * var(--u)) no-repeat;
+}
+#resultLines .line .k { flex: 1; text-align: left; white-space: nowrap; }
+#resultLines .line strong { font-size: calc(36 * var(--u)); color: #fff3da; white-space: nowrap; }
 .menu-art {
   --u: 0.5px;
   position: absolute;
@@ -234,7 +272,7 @@ body {
 }
 #title:has(#menuSheet:not([hidden])) .foot { display: none; }
 #resultLines2 { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 18px; }
-#settings, #towerSheet {
+#settings {
   position: absolute;
   inset: 0;
   display: grid;
@@ -355,7 +393,7 @@ body {
 #app[data-mode="tower"] #actions .btn-sub { min-width: 120px; min-height: 56px; }
 
 /* ------------------------------------------------ けっか・ていし・あそびかた */
-#result, #pause, #howto {
+#pause, #howto {
   position: absolute;
   inset: 0;
   display: grid;
@@ -401,7 +439,6 @@ body {
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
   white-space: nowrap;
 }
-#resultLines { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 18px; }
 .line { display: flex; justify-content: space-between; gap: 12px; padding: 9px 4px; border-bottom: 1px solid var(--line); font-size: 14.5px; color: var(--ink-dim); }
 .line strong { color: var(--ink); font-weight: 800; }
 .btns { display: flex; gap: 10px; }
@@ -595,8 +632,6 @@ body {
 
 #app[data-mode="vs"] #actions { bottom: calc(var(--sb) + 78px); }
 
-#towerSheet .small { margin: -4px 0 16px; font-size: 13.5px; line-height: 1.7; color: var(--ink-dim); }
-#towerSheet .btns .btn { min-height: 56px; }
 /* こうたいのハイタワー: 上の帯に名前と高さを出し、ひとり用の大きな数字は出さない */
 #app[data-alt="1"] #counter { display: none; }
 #app[data-alt="1"] #toast { top: calc(var(--st) + 66px); }

@@ -22,7 +22,7 @@
   const P = window.Physics;
   const R = window.Render;
   const SND = window.Sound;
-  const VERSION = 'v8';
+  const VERSION = 'v9';
 
   const $ = function (id) { return document.getElementById(id); };
   const els = {
@@ -679,6 +679,14 @@
     if (S.overTimer > 2.4 && !S.resultShown) showResult();
   }
 
+  // 題字は文字数で大きさを変える (絵の画素。長いと はみ出すので小さく)
+  function setResultTitle(plaque, big) {
+    els.resultTitle.textContent = plaque;
+    els.resultBig.textContent = big;
+    els.resultBig.style.setProperty('--fs', String(Math.min(100, Math.floor(640 / (big.length * 1.08)))));
+    els.resultTitle.style.setProperty('--pf', String(Math.min(32, Math.floor(290 / (Math.max(plaque.length, 1) * 1.0)))));
+  }
+
   function showResult() {
     S.resultShown = true;
     show(els.hud, true);
@@ -699,13 +707,12 @@
         title = playerName(winner) + ' の かち！';
         SND.win(); view.confetti(0, 6, 0);
       }
-      els.resultTitle.textContent = 'しょうぶあり';
-      els.resultBig.textContent = title;
+      setResultTitle('しょうぶあり', title);
       els.resultLines.innerHTML = '';
-      addLine('くずした人', playerName(loser));
-      addLine('ぬいたブロック', S.removed + ' 本');
-      addLine('てばん', S.turns + ' かい');
-      if (S.opp === 'cpu') addLine('せんせき', S.stats.vsWins + ' しょう ' + S.stats.vsLosses + ' はい');
+      addLine('くずした人', playerName(loser), 'robot');
+      addLine('ぬいたブロック', S.removed + ' 本', 'block');
+      addLine('てばん', S.turns + ' かい', 'clock');
+      if (S.opp === 'cpu') addLine('せんせき', S.stats.vsWins + ' しょう ' + S.stats.vsLosses + ' はい', 'trophy');
       saveStats();
     } else if (towerAlt()) {
       const t = S.t;
@@ -714,35 +721,35 @@
         if (winner === 0) { S.stats.twWins = (S.stats.twWins || 0) + 1; SND.win(); view.confetti(0, S.t.topY + 2, 0); }
         else { S.stats.twLosses = (S.stats.twLosses || 0) + 1; SND.lose(); }
       } else { SND.win(); view.confetti(0, S.t.topY + 2, 0); }
-      els.resultTitle.textContent = 'ハイタワー こうたい';
-      els.resultBig.textContent = (S.twOpp === 'cpu' ? (winner === 0 ? 'あなたの かち！' : 'CPU の かち…') : playerName(winner) + ' の かち！');
+      setResultTitle('ハイタワー こうたい', S.twOpp === 'cpu' ? (winner === 0 ? 'あなたの かち！' : 'CPU の かち…') : playerName(winner) + ' の かち！');
       els.resultLines.innerHTML = '';
-      addLine('くずした人', playerName(loser));
-      addLine('たかさ', t.count + ' だん (' + C.heightCm(t.count).toFixed(1) + ' cm)');
-      addLine('ぴったり', t.perfects + ' かい');
-      addLine('てばん', S.turns + ' かい');
+      addLine('くずした人', playerName(loser), 'robot');
+      addLine('たかさ', t.count + ' だん (' + C.heightCm(t.count).toFixed(1) + ' cm)', 'block');
+      addLine('てばん', S.turns + ' かい', 'clock');
+      addLine('ぴったり', t.perfects + ' かい', 'trophy');
       saveStats();
     } else {
       const t = S.t;
       const record = t.count > S.stats.bestTower;
       if (record && t.count > 0) { S.stats.bestTower = t.count; saveStats(); SND.win(); view.confetti(0, S.t.topY + 2, 0); els.resultBadge.hidden = false; }
       else SND.lose();
-      els.resultTitle.textContent = 'ハイタワー';
-      els.resultBig.textContent = t.count + ' だん';
+      setResultTitle(rankName(t.count), t.count + ' だん');      // 札には ランク名
       els.resultLines.innerHTML = '';
-      addLine('たかさ', C.heightCm(t.count).toFixed(1) + ' cm');
-      addLine('ぴったり', t.perfects + ' かい (さいこう ' + t.bestCombo + ' れんぞく)');
-      addLine('ベスト', S.stats.bestTower + ' だん');
-      addLine('ランク', rankName(t.count));
+      addLine('たかさ', C.heightCm(t.count).toFixed(1) + ' cm', 'block');
+      addLine('ぴったり', t.perfects + ' かい (れんぞく ' + t.bestCombo + ')', 'clock');
+      addLine('ベスト', S.stats.bestTower + ' だん', 'trophy');
     }
   }
 
-  function addLine(k, v) {
+  const RESULT_ICON = { robot: 0, block: 1, clock: 2, trophy: 3 };   // result-icons.png の並び
+
+  function addLine(k, v, icon) {
     const row = document.createElement('div');
     row.className = 'line';
-    const a = document.createElement('span'); a.textContent = k;
+    const ico = document.createElement('span'); ico.className = 'ico'; ico.style.setProperty('--i', String(RESULT_ICON[icon] || 0));
+    const a = document.createElement('span'); a.className = 'k'; a.textContent = k;
     const b = document.createElement('strong'); b.textContent = v;
-    row.appendChild(a); row.appendChild(b);
+    row.appendChild(ico); row.appendChild(a); row.appendChild(b);
     els.resultLines.appendChild(row);
   }
 
